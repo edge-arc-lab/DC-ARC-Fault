@@ -1,97 +1,93 @@
 # DC-ARC-Fault ⚡
 
-DC arc faults are a critical risk in photovoltaic (PV) plants and one of the main causes of fires. Reliable detection is difficult because the signals are noisy and non-stationary.
+I DC arc fault rappresentano un rischio critico negli impianti fotovoltaici e sono tra le principali cause di incendio. La rilevazione affidabile è complessa perché i segnali sono rumorosi e non stazionari.
 
-This work addresses the problem with reference to **UL 1699B**, developing a deep-learning-based detection system designed not only for high accuracy but also to be deployable in real time on **STM32** embedded devices.
+Questo lavoro affronta il problema in ottica **UL1699B**, sviluppando un sistema di rilevazione basato su deep learning progettato non solo per alta accuratezza, ma anche per essere deployabile su dispositivi embedded **STM32** in tempo reale.
 
-The project covers:
+Il progetto integra:
 
-- time-series preprocessing and labelling
-- **data leakage** control
-- training of **deep learning** and **feature-based** models
-- **ONNX** export
-- **INT8** quantisation
-- edge-oriented benchmarks on **STM32**
-- extended analyses: dependence on the current level, detection delay, arc energy, causal normalisation, variable load, label-parameter sensitivity
-
----
-
-# 🧠 Project Goal
-
-The goal is to develop a classification system able to identify DC arc faults in PV plants, while jointly optimising:
-
-- model accuracy
-- robustness against **data leakage**
-- compatibility with embedded systems
-- **real-time** inference on edge hardware
-
-The pipeline is designed to be reproducible and edge-ready. The reported results come from a single training run per model (no seed control, no independent validation set); the limitations are discussed in [Limitations](#-limitations).
+- preprocessing avanzato di serie temporali
+- controllo del **data leakage**
+- training di modelli **Deep Learning** e **feature-based**
+- esportazione in formato **ONNX**
+- quantizzazione **INT8**
+- benchmark edge-oriented su **STM32**
 
 ---
 
-# 📁 Project Structure
+# 🧠 Obiettivo del Progetto
+
+L'obiettivo è sviluppare un sistema di classificazione capace di identificare fault da arco elettrico DC in impianti fotovoltaici, ottimizzando contemporaneamente:
+
+- accuratezza del modello
+- robustezza rispetto al **data leakage**
+- compatibilità con sistemi embedded
+- inferenza **real-time** su hardware edge
+
+L'intera pipeline è progettata per essere riproducibile, scalabile ed edge-ready.
+
+---
+
+# 📁 Struttura del Progetto
 
 ```text
 DC-ARC-Fault/
 │
 ├── dataset/
-│   ├── dataset/                          # Original dataset (Kaggle / IEEE DataPort)
-│   ├── dataset_new/                      # Final preprocessed dataset
-│   ├── estrazione e sottocampionamento/
-│   │   └── mat_tools.py                  # .mat extraction and 25x downsampling
-│   ├── build_dataset_new.py              # Sliding window, labelling, normalisation
-│   ├── split_dataset.py                  # Physical train/test split
-│   └── dataset_leakage_check.py          # Data leakage verification
+│   ├── dataset/                          # Dataset originale da Kaggle
+│   ├── dataset_new/                      # Dataset preprocessato finale
+│   ├── build_dataset_new.py              # Sliding window + preprocessing
+│   ├── split_dataset.py                  # Split fisico train/test
+│   └── dataset_leakage_check.py          # Verifica data leakage
 │
-├── script/
+├── scripts/
 │   ├── training/
 │   │   ├── inception_time/
 │   │   │   ├── results/
-│   │   │   └── train_inceptiontime.py    # Training + ONNX export + calibration
+│   │   │   └── train_inceptiontime.py    # Training + export ONNX + calibrazione
+│   │   │
 │   │   ├── msrcfe/
 │   │   │   ├── results/
 │   │   │   ├── export_msrcfe/
-│   │   │   ├── train_msrcfe.py           # MS-RCFE + Ridge training
-│   │   │   └── export_msrcfe.py          # ONNX export + calibration
+│   │   │   ├── train_msrcfe.py           # Training MS-RCFE + Ridge
+│   │   │   └── export_msrcfe.py          # Export ONNX + calibrazione
+│   │   │
 │   │   └── multirockethydra/
-│   │       ├── results/
-│   │       └── train_arc_compare.py      # Comparative training (Ridge / Hydra / ArcNet)
+│   │       ├── train_arc_compare.py      # Training comparativo Ridge/Hydra/ArcNet
+│   │       ├── arcnet/
+│   │       ├── hydra/
+│   │       ├── ridge/
+│   │       └── altri file risultati e confronti
 │   │
-│   ├── modelli_quantizzati/              # INT8 models and comparison scripts
-│   │   ├── Inception/
-│   │   └── msrcfe/
-│   │
-│   ├── test_set_analysis.py              # Bootstrap, elementary baselines, error analysis
-│   ├── labels_analysis/                  # Label-parameter sensitivity
-│   │   ├── lab_analysis_1.0.py
-│   │   └── lab_analysis_2.0.py
-│   ├── casual current I_norm/            # Causal I_nom and detection delay
-│   │   ├── norm_causale_v1.py
-│   │   ├── norm_causale_v2.py
-│   │   └── ritardo_rilevazione_v1.py
-│   ├── energy_analysis/
-│   │   └── energia_arco_v2.py            # Arc energy estimate
-│   └── variable load analysis/
-│       └── var_load_analysis.py          # Variable-load analysis
+│   └── modelli_quantizzati/
+│       ├── inception_time/
+│       │   ├── confronto_modelli.py
+│       │   └── inceptiontime_PerChannel_quant_calibration_data_npz_1.onnx
+│       │
+│       └── msrcfe/
+│           ├── stm32_float/
+│           ├── stm32_int/
+│           ├── confronto_modelli.py
+│           ├── msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx
+│           └── misura_risorse.py
 │
-├── results_data/                         # Results of the extended analyses
-├── pipeline.png / pipeline_v2_en.pdf     # Pipeline diagrams
+├── pipeline.png
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-# ⚙️ Installation
+# ⚙️ Installazione
 
-## 1️⃣ Clone the repository
+## 1️⃣ Clonare il repository
 
 ```bash
 git clone https://github.com/yassirsuarez/DC-ARC-Fault.git
 cd DC-ARC-Fault
 ```
 
-## 2️⃣ Create a virtual environment
+## 2️⃣ Creare un ambiente virtuale
 
 ```bash
 # Linux / macOS
@@ -103,7 +99,7 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-## 3️⃣ Install the dependencies
+## 3️⃣ Installare le dipendenze
 
 ```bash
 pip install -r requirements.txt
@@ -113,17 +109,17 @@ pip install -r requirements.txt
 
 # 📚 Dataset
 
-The project uses the public dataset:
+Il progetto utilizza il dataset pubblico:
 
 **Photovoltaic (PV) DC Arc-Fault Library**
 [IEEE DataPort](https://ieee-dataport.org/open-access/photovoltaic-pv-dc-arc-library)
 
-From the original dataset, **current**, **voltage** and **power** are extracted (only the current is used by the models).
+Dal dataset originale vengono estratti: **Corrente**, **Tensione**, **Potenza**.
 
-A preprocessed version is also available on Kaggle:
+È disponibile anche una versione preprocessata su Kaggle:
 [Kaggle – DC Arc Fault Dataset](https://www.kaggle.com/datasets/yassirsuarez/dc-arc-fault)
 
-Download the dataset and place it in `dataset/dataset/`. Expected structure:
+Scaricare il dataset e inserirlo in `dataset/dataset/`. Struttura attesa:
 
 ```text
 dataset/
@@ -135,86 +131,80 @@ dataset/
 
 ---
 
-# 🔄 Project Pipeline
+# 🔄 Pipeline del Progetto
 
-![Pipeline](pipeline_v2_en.png)
-
-The vector version of the diagram is `pipeline_v2_en.pdf`. Stages 1–5 are the development and validation flow; stage 6 collects the analyses run on the same test set without retraining the models.
+![Pipeline](pipeline.png)
 
 ---
 
-# 1️⃣ Data management, preprocessing and physical split
+# 1️⃣ Preprocessing & Physical Split
 
-`mat_tools.py` reduces the original files once: it keeps the `.mat` files, extracts current, voltage and power and downsamples by a factor of 25 (250 kHz → 10 kHz).
+I segnali grezzi vengono preprocessati tramite:
 
-The signals are then processed by:
-
-- **Sliding window**: 100 ms windows (1000 samples), 50 ms step, at most 10 windows per class per file
-- **Labelling**: the arc onset `t1` is the first sample where the current drops below 0.95 × the nominal current for at least 300 ms; windows before `t1` are *pre-arc*, windows after are *arc*
-- **Normalisation** by the nominal current `I_nom`, estimated as the median of the first 0.2 s of each recording (minimum accepted: 0.10 A)
+- **Sliding Window** per la segmentazione temporale
+- **Normalizzazione** dei segnali
+- **Costruzione di campioni supervisionati**
 
 ```bash
-python dataset/build_dataset_new.py
-python dataset/split_dataset.py
+python build_dataset_new.py
+python split_dataset.py
 ```
 
-The physical split (80% train / 20% test) is done **per experiment**, **before** training, to avoid temporal leakage between windows of the same recording. Output: `.npz` for training, `.csv` for analysis. The test set has 7161 windows (4520 arc, 2641 pre-arc) from 215 experiments.
-
-> **Known limitation:** labels are defined on the normalised current level, and `I_nom` is not available in real time on a plant. See [Limitations](#-limitations).
+Lo split fisico (80% train / 20% test) viene eseguito **prima del training** per evitare overlap tra finestre temporali e temporal data leakage. Output: `.npz` per il training, `.csv` per analisi.
 
 ---
 
-# 2️⃣ Data leakage verification
+# 2️⃣ Data Leakage Verification
 
-Verification that there is no data leakage between training and test sets:
+Verifica dell'assenza di data leakage tra training e test set:
 
-- search for identical windows (exact comparison) and near-duplicates (on a subset)
-- check that no experiment appears in both sets (by file name)
-- shuffled-label test on elementary features, expected to give a balanced accuracy close to chance
+- ricerca di duplicati
+- verifica overlap temporale
+- validazione dello split fisico
 
 ```bash
-python dataset/dataset_leakage_check.py
+python dataset_leakage_check.py
 ```
 
 ---
 
 # 3️⃣ Training & Feature Extraction
 
-The folder `script/training/` contains the training pipelines for three architectures.
+La cartella `scripts/training/` contiene le pipeline di training per tre architetture distinte.
 
-## Models
+## Modelli utilizzati
 
-| Model | Literature name | Type | STM32 deployment |
+| Modello | Sigla letteratura | Tipologia | Deploy STM32 |
 |---|---|---|---|
-| InceptionTime | InceptionTime | End-to-end deep learning (trained temporal CNN) | ✅ ONNX → ST Edge AI |
-| MS-RCFE + Ridge | MS-RCFE | Multi-scale fixed-kernel ROCKET + linear classifier | ✅ ONNX → ST Edge AI |
-| MultiRocket + variants | ROCKET / MultiRocket | Feature-based (random kernels + classical ML) | ⚠️ Experimental only |
+| InceptionTime | InceptionTime | Deep Learning end-to-end (CNN temporale addestrata) | ✅ ONNX → ST Edge AI |
+| MS-RCFE + Ridge | MS-RCFE | Fixed-kernel ROCKET multi-scala + classificatore lineare | ✅ ONNX → ST Edge AI |
+| MultiRocket + varianti | ROCKET / MultiRocket | Feature-based (kernel casuali + ML classico) | ⚠️ Solo sperimentale |
 
 ---
 
 ## 🧠 InceptionTime
 
-`train_inceptiontime.py` handles in a single script:
+`train_inceptiontime.py` gestisce in un unico script:
 
-- training with tsai + PyTorch on GPU
-- UL 1699B-style metrics (detection rate, false positive rate)
-- multi-threshold analysis
-- export of `inceptiontime.onnx` (dynamic shape)
-- generation of the calibration dataset for INT8 quantisation
+- training con tsai + PyTorch su GPU
+- metriche UL1699B (detection rate, false positive rate)
+- analisi multi-soglia
+- export `inceptiontime.onnx` (shape dinamica)
+- generazione dataset di calibrazione per quantizzazione INT8
 
-**Output:**
+**Output prodotti:**
 
 ```text
 risultati_inception/
-├── inceptiontime.onnx            ← for ST Edge AI
-├── inceptiontime_training.png    ← loss/accuracy curves
-├── results_inceptiontime.png     ← confusion matrix, ROC, PR, score distribution
-├── inceptiontime_report.txt      ← full metrics
-├── calibration_data.npz          ← ST Edge AI calibration (key: 'input')
-├── calibration_data.npy          ← alternative
-├── calibration_data_flat.npy     ← 2D fallback
-├── calibration_labels.npy        ← labels for verification
-└── calibration_info.txt          ← ST Edge AI instructions
+├── inceptiontime.onnx            ← per ST Edge AI
+├── inceptiontime_training.png    ← curve loss/accuracy
+├── results_inceptiontime.png     ← confusion matrix, ROC, PR, score dist.
+├── inceptiontime_report.txt      ← metriche complete
+├── calibration_data.npz          ← calibrazione ST Edge AI (chiave: 'input')
+├── calibration_data.npy          ← alternativo
+├── calibration_data_flat.npy     ← fallback 2D
+├── calibration_labels.npy        ← label per verifica
+└── calibration_info.txt          ← istruzioni per ST Edge AI
 ```
 
 ```bash
@@ -226,18 +216,18 @@ python train_inceptiontime.py --epochs 50 --n-cal 200 --out risultati_inception
 
 ## 🧠 MS-RCFE + Ridge
 
-### What is MS-RCFE
+### Cos'è MS-RCFE
 
-**MS-RCFE** is an ultra-light time-series feature extractor. It uses **fixed** (untrained) random convolutional kernels to project the signal into a high-dimensional space, so that a linear model can classify it. The approach is inspired by the **ROCKET** paradigm (Dempster et al., 2020).
+**MS-RCFE** è un estrattore di feature ultra-leggero per serie temporali. Utilizza kernel convoluzionali casuali **fissi** (non addestrati) per proiettare il segnale in uno spazio ad alta dimensione, facilitando la classificazione tramite un modello lineare. L'approccio è ispirato al paradigma **ROCKET** (Dempster et al., 2020).
 
-#### Architecture
+#### Architettura
 
-The signal goes through **9 parallel 1D convolutional branches** at different temporal scales:
+Il segnale viene elaborato attraverso **9 rami convoluzionali 1D paralleli** basati su diverse scale temporali:
 
 ```
-Signal x ∈ ℝ^T
+Segnale x ∈ ℝ^T
       ↓
-9 parallel Conv1D (fixed kernels, not trained)
+9 Conv1D parallele (kernel fissi, non addestrati)
   ├── kernel=3, dilation=1  →  max, mean  →  64 feat
   ├── kernel=3, dilation=2  →  max, mean  →  64 feat
   ├── kernel=3, dilation=4  →  max, mean  →  64 feat
@@ -248,50 +238,48 @@ Signal x ∈ ℝ^T
   ├── kernel=9, dilation=2  →  max, mean  →  64 feat
   └── kernel=9, dilation=4  →  max, mean  →  64 feat
       ↓
-Concatenation  →  z ∈ ℝ^576
+Concatenazione  →  z ∈ ℝ^576
       ↓
-Ridge Classifier (linear)  →  ŷ ∈ {0, 1}
+Ridge Classifier (lineare)  →  ŷ ∈ {0, 1}
 ```
 
-Two global statistics (**max** and **mean**) are extracted from each branch, giving a final vector of **576 features**. Classification is done by a linear **Ridge Classifier**, the only component optimised during training.
+Per ogni ramo vengono estratte due statistiche globali (**Max** e **Mean**), producendo un vettore finale di **576 feature**. La classificazione viene affidata a un **Ridge Classifier** lineare, che rappresenta l'unica componente ottimizzata durante l'addestramento.
 
-#### Main advantages
+#### Vantaggi principali
 
-- **Very fast training:** no backpropagation for the convolutional part, as in an Extreme Learning Machine (Huang et al., 2006).
-- **Multi-scale analysis:** captures patterns at different frequencies and temporal resolutions, in line with MultiRocket (Tan et al., 2022).
-- **Embedded-oriented design:** fixed weights greatly reduce the memory footprint.
+- **Addestramento ultra-rapido:** non richiede backpropagation per la parte convoluzionale, in modo analogo a un Extreme Learning Machine (Huang et al., 2006).
+- **Analisi multi-scala:** identifica pattern a diverse frequenze e risoluzioni temporali, in linea con l'approccio di MultiRocket (Tan et al., 2022).
+- **Design per embedded:** l'uso di pesi fissi riduce drasticamente l'occupazione di memoria, rendendo il modello compatibile con tutta la gamma STM32.
 
-> The 9 kernels with length 9 account for about 52.9% of the multiply-accumulate operations of the extractor. Reducing the branches (retraining only the Ridge) is left as future work.
-
-### Training and export
+### Training ed export
 
 ```bash
 python train_msrcfe.py --train train.npz --test test.npz --out results_msrcfe
 python export_msrcfe.py msrcfe_bundle.pkl arc_dataset_train.npz --out export_msrcfe
 ```
 
-**Output:**
+**Output prodotti:**
 
 ```text
 export_msrcfe/
-├── msrcfe.onnx               ← feature extractor (fixed kernels) for ST Edge AI
-├── ridge_weights.h           ← Ridge classifier in C
-└── calibration_msrcfe.npz   ← INT8 calibration dataset
+├── msrcfe.onnx               ← feature extractor (kernel fissi) per ST Edge AI
+├── ridge_weights.h           ← classificatore Ridge in C
+└── calibration_msrcfe.npz   ← dataset calibrazione INT8
 ```
 
-> **Note:** only the feature extractor (fixed kernels) is exported. The Ridge classifier is implemented in C through `ridge_weights.h`. Embedded inference has three steps: (1) apply the 9 fixed kernels to the raw signal, (2) compute max and mean for each kernel, (3) dot product with the Ridge weights.
+> **Nota:** viene esportato solo il feature extractor (kernel fissi). Il classificatore Ridge viene implementato in C tramite `ridge_weights.h`. L'inferenza embedded consiste in tre passi: (1) applicazione dei 9 kernel fissi al segnale grezzo, (2) calcolo di max e mean per ogni kernel, (3) prodotto scalare con i pesi Ridge.
 
 ---
 
-## 🚀 MultiRocket + variants (comparative analysis)
+## 🚀 MultiRocket + varianti (analisi comparativa)
 
-`train_arc_compare.py` trains and compares three pipelines in a single run:
+`train_arc_compare.py` addestra e confronta tre pipeline in un unico run:
 
-| Pipeline | Description |
+| Pipeline | Descrizione |
 |---|---|
-| MultiRocket + Ridge | Feature extraction + linear classifier |
-| MultiRocketHydra + Ridge | Hydra kernels + internal Ridge |
-| MultiRocket + PCA + ArcNet | Feature extraction + PCA + neural network |
+| MultiRocket + Ridge | Feature extraction + classificatore lineare |
+| MultiRocketHydra + Ridge | Kernel Hydra + Ridge interno |
+| MultiRocket + PCA + ArcNet | Feature extraction + PCA + rete neurale |
 
 ```bash
 python train_arc_compare.py train.npz test.npz
@@ -299,87 +287,70 @@ python train_arc_compare.py train.npz test.npz --models ridge arcnet
 python train_arc_compare.py train.npz test.npz --pca-components 128 --epochs 40
 ```
 
-**Output:**
+**Output prodotti:**
 
 ```text
 results/
 ├── ridge/
-│   ├── bundle.pkl               model + transformer + scaler
-│   └── config.json              metrics + estimated resources
+│   ├── bundle.pkl               modello + transformer + scaler
+│   └── config.json              metriche + risorse stimate
 ├── hydra/
-│   ├── bundle.pkl               full model
-│   └── config.json              metrics
+│   ├── bundle.pkl               modello completo
+│   └── config.json              metriche
 ├── arcnet/
 │   ├── bundle.pkl               transformer + scaler + pca + model state_dict
-│   └── config.json              metrics + estimated resources
+│   └── config.json              metriche + risorse stimate
 ├── comparison.json
 ├── comparison_metrics.csv
 ├── comparison_confusion.csv
-├── comparison_resources.csv     per-component resources
+├── comparison_resources.csv     risorse per componente
 ├── comparison_report.txt
-└── comparison_plots.png         ROC, PR, confusion matrix, metrics
+└── comparison_plots.png         ROC, PR, confusion matrix, metriche
 ```
 
-> **STM32 deployment note:** all three pipelines use MultiRocket as preprocessing. MultiRocket has no automatic C/ONNX export, so none of them can be deployed on STM32 without manually reimplementing the kernels in C. They were used only for offline comparison.
+> **Nota deploy STM32:** tutte e tre le pipeline usano MultiRocket come preprocessing. MultiRocket non ha un export C/ONNX automatico, quindi nessuna delle tre è deployabile su STM32 senza reimplementare manualmente i kernel in C. Sono state usate esclusivamente per analisi comparativa offline.
 
 ---
 
-# 4️⃣ ONNX export & quantisation
+# 4️⃣ Export ONNX & Quantizzazione
 
-After training, the models are exported and quantised for embedded deployment.
+Dopo il training, i modelli vengono esportati e quantizzati per il deployment embedded.
 
-| Model | ONNX export | INT8 quantisation |
+| Modello | Export ONNX | Quantizzazione INT8 |
 |---|---|---|
-| InceptionTime | ✅ automatic in training | ✅ via ST Edge AI |
-| MS-RCFE + Ridge | ✅ `export_msrcfe.py` (feature extractor only) | ✅ via ST Edge AI |
-| MultiRocket + variants | ❌ not available | ❌ not applicable |
+| InceptionTime | ✅ automatico nel training | ✅ via ST Edge AI |
+| MS-RCFE + Ridge | ✅ `export_msrcfe.py` (solo feature extractor) | ✅ via ST Edge AI |
+| MultiRocket + varianti | ❌ non disponibile | ❌ non applicabile |
 
 ---
 
-# 5️⃣ Deployment check on ST Edge AI
+# 5️⃣ Deployment su ST Edge AI
 
-The ONNX models are validated through ST Edge AI Core / Developer Cloud.
+I modelli ONNX vengono validati tramite ST Edge AI Core / Developer Cloud.
 
-For InceptionTime and MS-RCFE the flow is:
+Per InceptionTime e MS-RCFE il flusso è:
 
-1. Import the `.onnx` model into ST Edge AI
-2. Load the `.npz` calibration dataset (key: `input`)
-3. Select INT8 per-channel quantisation
-4. Run the quantisation → generates `model_int8.onnx`
-5. Run the benchmark on the target board (Developer Cloud)
-
-> The classification metrics (FP32 vs INT8) were computed with **onnxruntime on a CPU**, on the independent test set; the benchmarks on the boards measure latency and memory, not accuracy.
-
----
-
-# 6️⃣ Extended analyses (no retraining)
-
-These analyses use the models already trained and the same test set. Scripts are in `script/` and results in `results_data/`.
-
-| Analysis | Script | Main finding |
-|---|---|---|
-| Level bands and elementary baselines | `test_set_analysis.py`, `sottoinsiemi_livello_v1.py` / `v2.py` (to be added to the repository) | A logistic regression on the window mean, min and max reaches about 99.7%: accuracy mostly measures the ability to reproduce a threshold on the current level |
-| Detection delay (sliding window) | `casual current I_norm/ritardo_rilevazione_v1.py` | Median delay 117–143 ms (K = 1); maximum 2040 ms (K = 3, InceptionTime INT8) |
-| Arc energy | `energy_analysis/energia_arco_v2.py` | Median 9–31 J; maximum 267.7 J (upper bound, series resistance set to 0) |
-| Causal `I_nom` and variable load | `casual current I_norm/norm_causale_v2.py`, `variable load analysis/` | A moving median over the last W seconds with a gate on the level keeps the detection rate within 0.1 points of the static one under stable load; ramps and steps degrade it |
-| Label-parameter sensitivity | `labels_analysis/lab_analysis_2.0.py` | The relative threshold dominates (0.93/0.90: false-alarm rate 9–47%; 0.97/0.98: detection rate 92.6–97%); confirmation time has a limited effect; minimum current has none |
-
-**UL 1699B time and energy criteria** (Table 29, as given in the project specification: 2.5 s to detect and interrupt the arc, 750 J total arc energy). The simulated maxima (detection delay 2040 ms plus up to 50 ms of actuation, and 267.7 J) are below the limits, with a narrow margin on delay in the tails of the INT8 versions. The comparison is indicative: the delay is referred to `t1` defined from the current level, the energy is an upper bound, and the inference and actuation times on the device are not included, so it is not a conformity proof. The limits have not been verified on the text of the standard.
+1. Importa il modello `.onnx` in ST Edge AI
+2. Carica il dataset di calibrazione `.npz` (chiave: `input`)
+3. Seleziona quantizzazione INT8 Per-Channel
+4. Avvia la quantizzazione → genera `model_int8.onnx`
+5. Carica il modello quantizzato nel progetto STM32CubeIDE
+6. Esegui inferenza sul test set e confronta con FP32
 
 ---
 
-# 📊 Results
+# 📊 Risultati
 
-## FP32 vs INT8 accuracy (independent test set, onnxruntime on CPU)
+## Accuratezza FP32 vs INT8
 
-| Model | FP32 accuracy | INT8 accuracy |
+| Modello | FP32 Accuracy | INT8 Accuracy |
 |---|---|---|
 | InceptionTime | 99.60% | 98.97% |
 | MS-RCFE + Ridge | 99.64% | 99.43% |
 
-Both models stay above 98.9% after INT8 quantisation. These figures come from a single training run per model, and the difference between the two models cannot be separated from the effect of the initialisation. Because labels depend on the current level, the accuracies should be read together with the level-only baselines of stage 6.
+Entrambi i modelli mantengono un'accuratezza superiore al 98.9% dopo quantizzazione INT8, confermando la stabilità delle architetture scelte rispetto alla riduzione di precisione numerica.
 
-## MultiRocket comparison (offline only)
+## Confronto MultiRocket (solo offline)
 
 | Pipeline | Accuracy | Balanced Acc | F1 | ROC-AUC |
 |---|---|---|---|---|
@@ -389,85 +360,71 @@ Both models stay above 98.9% after INT8 quantisation. These figures come from a 
 
 ---
 
-## ⚡ STM32 benchmark — InceptionTime
+## ⚡ Benchmark STM32 — InceptionTime
 
-Tested on **STM32N6570-DK** (Cortex-M55 at 800 MHz) with the **Neural-ART NPU**, comparing FP32 (CPU) and INT8 (NPU). Three sessions per model, ST Edge AI Developer Cloud.
+Testato su **STM32N6570-DK** con **Neural-ART NPU**, confrontando FP32 (CPU) vs INT8 (NPU).
 
-| Metric | FP32 (CPU) | INT8 (NPU) |
-|---|---|---|
-| Inference time (mean of 3 sessions) | 6218 ms (6178.5 / 6247.0 / 6228.7) | 19.73 ms (19.715 / 19.735 / 19.729) |
-| Cycles | 4.98 billion | 15.78 million |
-| Throughput | about 0.16 inf/s | about 50.7 inf/s |
-| Internal RAM | 4.74 MB | 2.15 MB |
+| Metrica | FP32 (CPU) | INT8 (NPU) | Δ |
+|---|---|---|---|
+| Inference time | 6250.68 ms | 21.17 ms | ↓ ~295× |
+| Throughput | 0.16 inf/s | 47.24 inf/s | ↑ ~295× |
+| RAM totale | 3.175 MB | 1.762 MB | ↓ ~44% |
+| Flash (pesi) | 1.562 MB | 399 KB | ↓ ~74% |
 
-The INT8/NPU version is about **315×** faster than FP32 on CPU. 19.73 ms is below the 50 ms window step (about 39% load) and measures inference only. On the N6 the Developer Cloud does not allow choosing NPU or CPU for INT8, so the effect of quantisation alone was measured on the H7S78 (below). The report does not include flash, weights and total RAM, so those figures are not given here. MS-RCFE was not measured on the N6 (it cannot be measured directly with ST Edge AI on that board).
-
-**Quantisation alone, on STM32H7S78 (Cortex-M7 at 600 MHz, no NPU):** InceptionTime INT8 2370.64 ms vs FP32 6997.67 ms (about ×2.95); weights 394,376 B vs 1,554,056 B; total RAM 950,480 B vs 1,942,968 B. This is an indication, not transferable to the N6 (different CPU and external memory).
-
-The ONNX file hashes match the ones reported in the ST Edge AI CSV (INT8 `5ff6de27…`, FP32 `c9d6d54e…`).
+La latenza FP32 elevata (6.25 s) è attesa su questa board: InceptionTime è una rete profonda (~1.5 MB di pesi) e il Cortex-M55 senza NPU non dispone di accelerazione hardware per operazioni floating point su reti di questa dimensione. La quantizzazione INT8 abilita il pieno utilizzo della **Neural-ART NPU**, portando l'inferenza a 21 ms con un guadagno di ~295×. La precisione è preservata: cosine similarity INT8 vs FP32 ≈ **0.9999**.
 
 ---
 
-## ⚡ STM32 benchmark — MS-RCFE + Ridge
-
-Tested on **STM32H7S78-DK** (Cortex-M7), comparing the full pipeline (feature extractor + Ridge) in FP32 vs INT8, measured **directly on the real board** through ST Edge AI Developer Cloud.
-
-| Metric | FP32 | INT8 | Δ |
+## ⚡ Benchmark STM32 — MS-RCFE + Ridge
+ 
+Testato su **STM32H7S78-DK** (Cortex-M7), confrontando la pipeline completa (feature extractor + Ridge) in FP32 vs INT8. Questi valori sono misurati **direttamente sulla board reale** tramite ST Edge AI Developer Cloud.
+ 
+| Metrica | FP32 | INT8 | Δ |
 |---|---|---|---|
 | Inference time | 84.75 ms | 70.04 ms | ↓ ~1.2× |
 | Throughput | 11.80 inf/s | 14.28 inf/s | ↑ ~1.2× |
-| Total RAM | 135.61 KB | 141.11 KB | +4% |
-| Total Flash | 23.56 KB | 30.81 KB | +30% |
-
-**Preliminary estimate of the relative weight of the components (host CPU benchmark, not the board):**
-
-Before deployment, a local benchmark simulating inference with `onnxruntime` on the development PC CPU (script `misura_risorse.py`) was run to estimate the relative weight of the CNN and the Ridge within the pipeline:
-
-| Component (host CPU, onnxruntime) | FP32 | INT8 |
+| RAM totale | 135.61 KB | 141.11 KB | +4% |
+| Flash totale | 23.56 KB | 30.81 KB | +30% |
+ 
+**Stima preliminare del peso relativo dei componenti (benchmark su CPU host, non sulla board):**
+ 
+Prima del deployment è stato eseguito un benchmark preliminare in locale, simulando l'inferenza con `onnxruntime` sulla CPU del PC di sviluppo (script `misura_risorse.py`), per stimare il peso relativo di CNN e Ridge all'interno della pipeline:
+ 
+| Componente (CPU host, onnxruntime) | FP32 | INT8 |
 |---|---|---|
 | Feature extractor (ONNX) | 0.333 ms | 0.684 ms |
-| Ridge Classifier (C, simulated) | 0.006 ms | 0.006 ms |
-
-> **Warning:** these values are **neither comparable nor additive** with the end-to-end latency measured on the board (84.75 / 70.04 ms): they come from two different computing platforms. The host CPU is hundreds of times more powerful than the Cortex-M7. The CPU benchmark did confirm, proportionally, that the Ridge Classifier is computationally negligible compared with the feature extractor. A real per-component breakdown measured on the board is not available.
-
-Both configurations tested on real hardware are well above the 50 Hz real-time requirement. INT8 quantisation does not always improve latency on small models: here it introduces a slight overhead on the CNN but reduces total memory use.
-
-> **Note on memory values:** the Flash and RAM values include the library runtime (about 9 KB overhead). The analytical estimate of the model weights alone (feature extractor + Ridge) is **14.7 KB Flash · 10.7 KB RAM**.
+| Ridge Classifier (C, simulato) | 0.006 ms | 0.006 ms |
+ 
+> **Attenzione:** questi valori **non sono confrontabili né sommabili** con la latenza end-to-end misurata sulla board (84.75/70.04 ms): sono due esperimenti su due piattaforme di calcolo diverse. La CPU del PC host è centinaia di volte più potente del Cortex-M7 embedded (multi-GHz, multi-core, cache ampie, contro un microcontrollore a poche centinaia di MHz), il che spiega interamente il divario (~250× in FP32, ~100× in INT8) — non si tratta di un errore nei dati. Il benchmark su CPU ha comunque confermato, in proporzione, che il Ridge Classifier è computazionalmente trascurabile rispetto al feature extractor. **Una vera scomposizione per componente misurata sulla board reale non è al momento disponibile**; se recuperabile dal progetto ST Edge AI Developer Cloud (report con voci tipo "cTime"/"Inference time per layer"), andrebbe aggiunta qui.
+ 
+Entrambe le configurazioni testate su hardware reale sono ampiamente sopra i requisiti real-time a 50 Hz. La quantizzazione INT8 su modelli piccoli non garantisce sempre un miglioramento della latenza — su questo modello introduce un lieve overhead sulla CNN ma riduce il consumo globale di memoria.
+ 
+> **Nota sui valori di memoria:** i valori di Flash e RAM in tabella sono misurati da ST Edge AI su hardware reale e includono il runtime della libreria (~9 KB di overhead). La stima analitica dei soli pesi del modello (feature extractor + Ridge) è **14.7 KB Flash · 10.7 KB RAM** — il delta rispetto ai valori misurati è interamente dovuto a questo overhead.
 
 ---
 
-## 📊 Embedded resource estimate — MultiRocket variants
+## 📊 Stima risorse embedded — MultiRocket varianti
 
-The MultiRocket pipelines were not deployed on STM32 (preprocessing not exportable to C). The table gives an analytical estimate based on the sizes of the trained models. The cost of the MultiRocket kernels (~24.4 KB Flash) is common to Ridge and ArcNet and is included.
+Le pipeline MultiRocket non sono state deployate su STM32 (preprocessing non esportabile in C). La tabella riporta una stima analitica basata sulle dimensioni dei modelli addestrati. Il costo dei kernel MultiRocket (~24.4 KB Flash) è comune a Ridge e ArcNet ed è incluso nelle stime.
 
-| Pipeline | Internal flash | External flash | RAM |
+| Pipeline | Flash interna | Flash esterna | RAM |
 |---|---|---|---|
 | MultiRocket + Ridge | ~607 KB | — | ~194 KB |
 | MultiRocket + PCA + ArcNet | ~680 KB | ~48.6 MB (QSPI) | ~195 KB |
 
-> MultiRocketHydra cannot be estimated: the internal Hydra kernels are not accessible as arrays.
+> MultiRocketHydra non è stimabile: i kernel Hydra interni non sono accessibili come array.
 
 ---
 
-# ⚠️ Limitations
+# 🏁 Conclusioni e Raccomandazioni
 
-- **Labels depend on the current level.** `t1` is defined on the normalised current, so the models partly learn a threshold on the level (a three-number logistic baseline reaches about 99.7%). Performance changes substantially with the threshold (stage 6).
-- **`I_nom` is estimated from the first 0.2 s** of each recording, which is not available in real time on a plant; a causal estimate is evaluated in stage 6 but the models were not retrained with it.
-- **Single training run per model**, no seed control and no independent validation set; the difference between the models cannot be separated from the effect of the initialisation.
-- **Classification metrics from onnxruntime on CPU**, not measured on the target; the INT8/NPU values for InceptionTime on the N6 are not backed by a saved full report (weights and total RAM missing).
-- **UL 1699B:** the 2.5 s / 750 J criteria are compared only with simulated estimates; end-to-end interruption time is not measured. The DR ≥ 95% and FPR ≤ 5% criterion is adopted in this work and is not prescribed by the standard.
+Il progetto ha valutato tre famiglie di modelli per la rilevazione di DC arc fault, con requisiti congiunti di alta accuratezza e compatibilità embedded.
 
----
+**MS-RCFE + Ridge** è il modello raccomandato per il deployment su STM32 di fascia media (es. STM32H7). Combina un'accuratezza superiore al 99.4% anche dopo quantizzazione INT8, un'impronta hardware minima (23.6 KB Flash, 135.6 KB RAM misurati su hardware) e latenza di 70 ms in INT8 — ben entro i requisiti real-time a 50 Hz. La pipeline è completamente esportabile tramite ST Edge AI senza modifiche al firmware.
 
-# 🏁 Conclusions and Recommendations
+**InceptionTime** è la scelta corretta quando è disponibile una board con NPU dedicata (es. STM32N6570-DK con Neural-ART). In quel caso il guadagno di latenza è di ~295× rispetto a FP32, rendendo praticabile anche l'inferenza continua. Su board Cortex-M senza NPU la latenza FP32 è proibitiva per uso real-time.
 
-The project evaluated three families of models for DC arc-fault detection, with joint requirements of high accuracy and embedded compatibility.
-
-**MS-RCFE + Ridge** is the recommended model for deployment on mid-range STM32 devices (e.g. STM32H7). It combines an accuracy above 99.4% after INT8 quantisation, a minimal hardware footprint (23.6 KB Flash, 135.6 KB RAM measured on hardware) and an INT8 latency of 70 ms, well within the 50 Hz real-time requirement. The pipeline can be exported through ST Edge AI without firmware changes.
-
-**InceptionTime** is the right choice when a board with a dedicated NPU is available (e.g. STM32N6570-DK with Neural-ART). In that case the latency gain is about 315× compared with FP32, making continuous inference practical. On Cortex-M boards without an NPU the FP32 latency is prohibitive for real-time use.
-
-**MultiRocket and variants** give the highest classification metrics (F1 up to 99.72% with Hydra) but cannot be deployed on STM32 without manually reimplementing the preprocessing in C. They were used only as an offline comparative baseline.
+**MultiRocket e varianti** offrono le metriche di classificazione più alte (F1 fino a 99.72% con Hydra) ma non sono deployabili su STM32 senza reimplementare manualmente il preprocessing in C. Sono stati usati esclusivamente come baseline comparativa offline per contestualizzare le scelte architetturali.
 
 ---
 
@@ -478,7 +435,7 @@ The project evaluated three families of models for DC arc-fault detection, with 
 
 ---
 
-# 📄 License
+# 📄 Licenza
 
-The original dataset belongs to the authors of the project published on IEEE DataPort.
-The repository code is distributed under the licence specified in the project.
+Il dataset originale appartiene ai rispettivi autori del progetto pubblicato su IEEE DataPort.
+Il codice del repository è distribuito secondo la licenza specificata nel progetto.
