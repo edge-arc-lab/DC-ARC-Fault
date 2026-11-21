@@ -1,7 +1,0 @@
-PROCEDURA SU ST EDGE AI (stessa dei modelli gia' misurati)
-1. Per ogni variante (cartelle b3, b4, full): in ST Edge AI Developer Cloud caricare msrcfe_<nome>.onnx.
-2. Quantizzazione INT8 per canale con il dataset di calibrazione calibration_<nome>.npz (chiave 'input', forma [N,1,1,1000]).
-3. Benchmark sulla scheda STM32H7S78-DK (stesso protocollo: tre sessioni, media), in FP32 e in INT8. Annotare latenza (ms), flash, RAM.
-4. Il Ridge (ridge_weights.h) non e' nel grafo: la sua parte e' trascurabile (ridge_predict) ma va sommata al tempo totale se si vuole il tempo per finestra.
-5. Il benchmark 'full' di questa procedura deve riprodurre 84.75 ms (FP32) e 69.77 ms (INT8): se non coincide, i risultati delle varianti vanno confrontati con QUESTO valore.
-6. Le metriche DR/FPR delle varianti (metrics.json) sono calcolate con onnxruntime su CPU in FP32; le metriche INT8 reali richiedono il modello quantizzato da ST.

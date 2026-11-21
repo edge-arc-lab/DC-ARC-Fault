@@ -1,39 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-analisi_test_set_v1.py - Tabelle 3.1 e 3.2, cross-fitting e bootstrap per esperimento
-=====================================================================================
+test_set_analysis.py - Tabelle di valutazione, cross-fitting e bootstrap per esperimento
+========================================================================================
 
-Riproduce, SENZA riaddestrare, le analisi della sezione 3.6:
+Riproduce le metriche di test dei modelli:
 
-  1. Tabella 3.1  : Accuratezza, DR, FPR, FN, FP, ROC-AUC dei 4 modelli
-                    (InceptionTime e MS-RCFE+Ridge, FP32 e INT8) a soglia fissata a priori
-                    (0.5 sulla probabilita' di arco; 0 sullo score del Ridge).
-                    Aggiunge concordanza FP32/INT8 e concentrazione degli errori per esperimento.
-  2. Tabella 3.2  : sensibilita' di InceptionTime alla soglia (default 0.50, 0.25, 0.10).
-  3. Cross-fitting: 30 suddivisioni del test set in due meta' disgiunte PER ESPERIMENTO;
-                    soglia scelta su una meta' (max DR con FPR <= 1%), valutata sull'altra.
-                    E' una stima indicativa: il test set e' riutilizzato.
-  4. Bootstrap    : ricampionamento degli ESPERIMENTI (non delle finestre) con reinserimento,
-                    intervalli percentile al 95% per Accuratezza, DR, FPR e per le differenze
-                    appaiate tra modelli. Cattura la variabilita' di campionamento del test set,
-                    NON quella di addestramento (seed, split).
+  1. Tabella comparativa: Accuratezza, DR, FPR, FN, FP, ROC-AUC dei 4 modelli
+                          (InceptionTime e MS-RCFE+Ridge, FP32 e INT8) a soglia fissata a priori
+                          (0.5 sulla probabilita' di arco; 0 sullo score del Ridge).
+                          Calcola la concordanza FP32/INT8 e la concentrazione degli errori.
+  2. Sensibilita' soglia: impatto della soglia di decisione (0.50, 0.25, 0.10) per InceptionTime.
+  3. Cross-fitting:       30 suddivisioni del test set in due meta' disgiunte per esperimento;
+                          soglia scelta su una meta' (max DR con FPR <= 1%), valutata sull'altra.
+  4. Bootstrap:           ricampionamento degli esperimenti con reinserimento (intervalli 95%)
+                          per Accuratezza, DR, FPR e differenze appaiate tra modelli.
 
-Convenzioni
+Convenzioni:
   - Classe 1 = arco (positivo), classe 0 = pre-arco (negativo).
   - InceptionTime: i modelli ONNX restituiscono logit; p(arco) = softmax(logit)[1].
-    p > 0.5  <=>  logit1 - logit0 > 0  (a parita' di punteggio vince la classe 0, come argmax).
-  - MS-RCFE: score = features @ ridge_coef + ridge_intercept (Ridge ricostruito da .npy);
-    classe 1 se score > 0 (come RidgeClassifier.predict).
-  - Dev. std.: ddof=1 (deviazione standard campionaria tra gli split).
+  - MS-RCFE: score = features @ ridge_coef + ridge_intercept.
 
-Uso (dalla radice del repository o con --repo):
-    python analisi_test_set_v1.py --repo /percorso/DC-ARC-Fault --out risultati_analisi
-    python analisi_test_set_v1.py --use-cache      # riusa gli score gia' calcolati
-    python analisi_test_set_v1.py --n 600          # prova rapida su un sottoinsieme
-
-Dipendenze: numpy, onnxruntime, scikit-learn (tqdm facoltativo).
-Nessuna dipendenza da torch.
+Uso:
+    python script/test_set_analysis.py --repo . --out risultati_analisi
+    python script/test_set_analysis.py --use-cache
+    python script/test_set_analysis.py --n 600
 """
 import argparse
 import csv
@@ -45,8 +36,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-
-VERSIONE = "v1"
 
 # --------------------------------------------------------------------------------------
 # Percorsi relativi alla radice del repository
@@ -457,7 +446,7 @@ def main():
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     import onnxruntime, sklearn
-    P(f"analisi_test_set {VERSIONE} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    P(f"Valutazione test set - {time.strftime('%Y-%m-%d %H:%M:%S')}")
     P(f"numpy {np.__version__}, onnxruntime {onnxruntime.__version__}, scikit-learn {sklearn.__version__}, "
       f"Python {platform.python_version()}")
 

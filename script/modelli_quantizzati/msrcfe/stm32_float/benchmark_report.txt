@@ -2,7 +2,7 @@
   BENCHMARK CNN + RIDGE — REPORT
 ================================================================
 
-  Modello ONNX : C:\Users\Asus\Desktop\progetto_manutenzione\script\training\msrcfe\export_msrcfe\msrcfe.onnx
+  Modello ONNX : script/training/msrcfe/export_msrcfe/msrcfe.onnx
   Input shape  : [1, 1, 1000]
   Warmup runs  : 10
   Bench runs   : 200

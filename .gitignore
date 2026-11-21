@@ -1,3 +1,11 @@
 *.zip
 results_data/
 ris_tutti/
+dataset/dataset/
+dataset\dataset
+Future_work/
+sviluppi_futuri/
+__pycache__/
+*.pyc
+script/variable_load_analysis/export_finestre_*/
+script/variable_load_analysis/ris_*/

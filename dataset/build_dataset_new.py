@@ -32,12 +32,9 @@ Uso:
                             [--exclude-low-voltage]
 
 Output:
-    arc_dataset.npz          X (n_finestre × n_campioni), y (n_finestre,)
-    arc_dataset_meta.csv     Metadati per finestra (file, t_start, label)
-    arc_dataset_skipped.csv  File scartati con motivazione
-
-Autori: progetto tesi magistrale — Manutenzione e Affidabilità
-Dataset: https://ieee-dataport.org/open-access/photovoltaic-pv-dc-arc-library
+    arc_dataset_new.npz          X (n_finestre × n_campioni), y (n_finestre,)
+    arc_dataset_meta_new.csv     Metadati per finestra (file, t_start, label)
+    arc_dataset_skipped_new.csv  File scartati con motivazione
 """
 
 import argparse
@@ -66,14 +63,8 @@ log = logging.getLogger(__name__)
 
 FS_HZ    = 10_000   # Frequenza di campionamento dopo sottocampionamento [Hz]
 
-WINDOW_S = 0.10     # Durata finestra di classificazione [s]
-                    # 0.10s = 1.000 campioni  ← real-time (prof)
-                    # 0.50s = 5.000 campioni
-                    # 1.00s = 10.000 campioni
-                    # 2.00s = 20.000 campioni ← offline (run precedenti)
-
-STEP_S   = 0.05     # Passo tra finestre consecutive [s]
-                    # 0.05s = 50ms  ← latenza massima di rilevamento
+WINDOW_S = 0.10     # Durata finestra di classificazione [s] (1.000 campioni a 10 kHz)
+STEP_S   = 0.05     # Passo di scorrimento tra finestre [s] (50% overlap, 50 ms)
 
 # Max finestre label=0 e label=1 estratte per file
 # Limita lo squilibrio e la ridondanza (molte finestre consecutive simili)

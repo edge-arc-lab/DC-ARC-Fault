@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-misura_risorse.py
-=======================
-Benchmark latenza e stima risorse embedded per pipeline CNN (ONNX) + Ridge.
+Benchmark di latenza e stima delle risorse embedded per pipeline CNN (ONNX) + Ridge.
 
 Misura:
     - Latenza inferenza CNN (ONNX): mean, std, min, max, p95
@@ -15,45 +14,18 @@ Output:
     benchmark_latency.csv     latenze complete con percentili
     benchmark_resources.csv   stima risorse embedded STM32
     benchmark_report.txt      report testuale leggibile
-
-NOTE (v2, 2026-10-07)
-    - Si tratta di un benchmark su CPU HOST (onnxruntime): i tempi NON sono
-      confrontabili con le misure su board (STM32) ne' sommabili ad esse.
-    - CNN, Ridge e pipeline sono cronometrati NELLA STESSA ESECUZIONE
-      (cnn + ridge = pipeline per ogni iterazione). Nella v1 le tre misure erano
-      separate e "Pipeline tot." poteva risultare inferiore alla sola CNN.
-    - I limiti di Flash/RAM del target non sono piu' scritti nel codice
-      (la v1 usava 2 MB / 512 KB, valori non verificati per la STM32H7S78):
-      si passano con --flash-limit-kb / --ram-limit-kb; senza limiti nessuna
-      verifica di compatibilita' viene eseguita.
-    - Il nome dell'ingresso del modello e' letto dal modello stesso.
-
-USO:
-    python misura_risorse.py \
-        --model  path/to/model.onnx \
-        --coef   path/to/ridge_coef.npy \
-        --bias   path/to/ridge_intercept.npy \
-        --out    ./host_float
 """
-
 import argparse
 import csv
 import os
 import time
+
 import numpy as np
 import psutil
 import onnxruntime as ort
 
-# Vincolo temporale reale imposto dalla pipeline di classificazione real-time
-# (vedi build_dataset_new.py: WINDOW_S = 0.10 s, la finestra di classificazione).
-# Lo standard UL 1699B richiede che il dispositivo rilevi l'arco entro il tempo
-# limite previsto dai suoi criteri di sicurezza; nella nostra pipeline questo si
-# traduce nel vincolo operativo di elaborare una finestra di 100 ms prima che
-# arrivi la successiva. NON è un requisito a 50 Hz: quella soglia (20 ms) era
-# un valore arbitrario, pensato per il benchmark locale su CPU host (dove la
-# pipeline gira in meno di 1 ms) e non ha alcun riscontro nei parametri reali
-# del progetto o nello standard citato.
-REALTIME_WINDOW_MS = 100.0  # WINDOW_S * 1000, da build_dataset_new.py
+# Vincolo temporale di elaborazione a finestra (100 ms)
+REALTIME_WINDOW_MS = 100.0
 
 
 # =============================================================================

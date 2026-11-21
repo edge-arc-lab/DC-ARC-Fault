@@ -2,7 +2,7 @@
   BENCHMARK CNN + RIDGE — REPORT
 ================================================================
 
-  Modello ONNX : C:\Users\Asus\Desktop\progetto_manutenzione\script\modelli_quantizzati\msrcfe\msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx
+  Modello ONNX : script/modelli_quantizzati/msrcfe/msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx
   Input shape  : [1, 1, 1000]
   Warmup runs  : 10
   Bench runs   : 200

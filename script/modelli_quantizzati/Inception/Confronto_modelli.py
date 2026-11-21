@@ -1,32 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Confronto_modelli.py  (InceptionTime)  -  v2, 2026-10-07
-========================================================
-Confronta InceptionTime in FP32 (ONNX originale) con la versione INT8
-quantizzata da ST Edge AI, sul test set (arc_dataset_test.npz), con
-onnxruntime su CPU.
+Confronto prestazionale tra InceptionTime FP32 e INT8 (quantizzato con ST Edge AI)
+su set di test (arc_dataset_test.npz) tramite ONNX Runtime.
 
-I modelli restituiscono due logit (classe 0 = pre-arco, classe 1 = arco); la
-predizione e' l'argmax (soglia 0.5 sulla probabilita' di arco; a parita' vince
-la classe 0).
-
-Output: accuratezza, Detection Rate (DR), False Positive Rate (FPR), FN, FP,
-per FP32 e INT8, e fedelta' (percentuale di campioni su cui i due modelli
-danno la stessa predizione).
-
-I valori sono ottenuti su CPU host e NON sostituiscono la validazione sul
-target (STM32N6), dove l'esecuzione INT8 (NPU) puo' differire da onnxruntime.
-
-Percorsi di default: relativi alla radice del repository
-(questo file sta in script/modelli_quantizzati/Inception/).
-
-USO:
-    python Confronto_modelli.py                 # tutto il test set (~2.5 min per modello su 1 CPU)
-    python Confronto_modelli.py --n 1000        # sottoinsieme casuale (--seed)
-    python Confronto_modelli.py --batch 64
-Requisiti: numpy, onnxruntime (tqdm facoltativo).
+Valuta: accuratezza, Detection Rate (DR), False Positive Rate (FPR), FN, FP
+e tasso di fedelta' (concordanza tra inferenza FP32 e INT8).
 """
-
 import argparse
 from pathlib import Path
 

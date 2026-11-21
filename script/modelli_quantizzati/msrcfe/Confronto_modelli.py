@@ -1,36 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Confronto_modelli.py  (MS-RCFE)  -  v2, 2026-10-07
-==================================================
-Confronta il modello MS-RCFE in FP32 (ONNX originale) con la versione INT8
-quantizzata da ST Edge AI, sul test set (arc_dataset_test.npz), con
-onnxruntime su CPU.
+Confronto prestazionale tra MS-RCFE FP32 e INT8 (quantizzato con ST Edge AI)
+su set di test (arc_dataset_test.npz) con classificatore Ridge tramite ONNX Runtime.
 
-Entrambe le versioni estraggono le 576 feature dalla finestra; la
-classificazione e' affidata allo STESSO Ridge, quindi le differenze dipendono
-solo dalla quantizzazione dell'estrattore. Il Ridge e' ricostruito da
-ridge_coef.npy / ridge_intercept.npy: score = feature @ coef + intercept,
-classe 1 (arco) se score > 0 (come RidgeClassifier.predict). Non serve torch.
-(In alternativa --bundle legge il Ridge dal .pkl, che richiede torch.)
-
-Output: accuratezza, Detection Rate (DR), False Positive Rate (FPR), FN, FP,
-per FP32 e INT8, e fedelta' (percentuale di campioni su cui i due modelli
-danno la stessa predizione).
-
-I valori sono ottenuti su CPU host e NON sostituiscono la validazione sul
-target (STM32H7S78), dove l'aritmetica INT8 puo' differire da onnxruntime.
-
-Percorsi di default: relativi alla radice del repository
-(questo file sta in script/modelli_quantizzati/msrcfe/).
-
-USO:
-    python Confronto_modelli.py                 # tutto il test set
-    python Confronto_modelli.py --n 1000        # sottoinsieme casuale (--seed)
-    python Confronto_modelli.py --original percorso/msrcfe.onnx \\
-                                --quantized percorso/msrcfe_int8.onnx
-Requisiti: numpy, onnxruntime (tqdm facoltativo).
+Valuta: accuratezza, Detection Rate (DR), False Positive Rate (FPR), FN, FP
+e tasso di fedelta' (concordanza tra inferenza FP32 e INT8).
 """
-
 import argparse
 from pathlib import Path
 

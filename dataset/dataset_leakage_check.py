@@ -181,13 +181,13 @@ def final_report(exact_dup, near_dup, group_overlap, shuffle_acc):
         log.warning("Shuffle accuracy troppo alta")
 
     if risk == 0:
-        log.info("✅ DATASET CLEAN")
+        log.info("[OK] DATASET VERIFICATO - Nessun data leakage rilevato")
     elif risk <= 3:
-        log.info("⚠ RISCHIO BASSO")
+        log.info("[AVVISO] Rischio basso")
     elif risk <= 6:
-        log.info("⚠ RISCHIO MEDIO")
+        log.info("[ATTENZIONE] Rischio medio")
     else:
-        log.info("🚨 DATA LEAKAGE MOLTO PROBABILE")
+        log.warning("[ALLARME] Possibile presenza di data leakage")
 
 
 # ============================================================

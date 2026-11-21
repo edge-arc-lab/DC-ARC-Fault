@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-export_msrcfe.py
-====================
-Export SOLO modello MSRCFE per STM32H7
-✔ Fix dim=2 (no Squeeze bug)
-✔ Opset 13 (ST Edge AI compatibile)  
-✔ Verifica numerica PyTorch vs ONNX
-✔ Shape statica per STM32 (batch=1)
+Esportazione del modello MS-RCFE in formato ONNX statico (Opset 13) per STM32Cube.AI.
 
-esempio uso:
-python export_msrcfe.py msrcfe_bundle.pkl arc_dataset_train.npz --out export_msrcfe
+Funzionalita':
+- Conversione del feature extractor in ONNX statico con forma di input [1, 1, 1000].
+- Verifica numerica di coerenza dell'output tra PyTorch e ONNX Runtime.
+- Esportazione dei coefficienti del Ridge in header C (ridge_weights.h).
+- Generazione del dataset di calibrazione (npz) per la quantizzazione INT8.
 """
-
-import os
 import argparse
 import logging
+import os
 import pickle
+
 import numpy as np
 import torch
 import torch.nn as nn

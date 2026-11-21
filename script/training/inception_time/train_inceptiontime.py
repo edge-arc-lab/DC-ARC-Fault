@@ -1,53 +1,14 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-train_inceptiontime.py
-======================
-Addestra InceptionTime su dataset arc fault detection e produce:
-  - metriche di sicurezza (DR, FPR) con il criterio adottato nel lavoro
-    (DR >= 95%, FPR <= 5%; NON sono valori prescritti da UL 1699B)
-  - grafici
-  - export ONNX (dinamico + statico)
-  - dataset di calibrazione per quantizzazione INT8 (ST Edge AI)
+Addestramento dell'architettura InceptionTime per rilevamento di archi elettrici DC.
 
-BACKEND: tsai + PyTorch  (NON aeon+TensorFlow)
-  - Compatibile con CUDA 13.x e RTX 4060
-  - Training su GPU automatico se disponibile
-  - Export ONNX nativo via torch.onnx.export
-
-FIX: usa Learner diretto invece di TSClassifier per evitare il bug
-     numpy.object_ causato dalla reinizializzazione interna dei dati.
-
-Export ONNX:
-  - inceptiontime.onnx        shape dinamica  ← inferenza generale
-
-Dataset calibrazione (generato automaticamente al termine del training):
-  - calibration_data.npz      shape (N, 1, 1, 1000)  float32  ← ST Edge AI
-  - calibration_data.npy      shape (N, 1, 1000)      float32  ← alternativo
-  - calibration_data_flat.npy shape (N, 1000)          float32  ← fallback
-  - calibration_labels.npy    label per verifica
-  - calibration_info.txt      riepilogo
-
-Uso:
-    python train_inceptiontime.py [--out <cartella>]
-                                  [--epochs 50] [--batch-size 64]
-                                  [--n-cal 100]
-
-Requisiti:
-    pip install tsai torch scikit-learn matplotlib seaborn onnxruntime
-
-NOTE METODOLOGICHE (v2, 2026-10-07)
-  - Il test set e' passato a tsai come "valid" (splits = train, test): le
-    metriche per epoca sono calcolate sul test set, ma nessuna callback
-    seleziona l'epoca (si esporta il modello dell'ultima epoca).
-    NON esiste un validation set indipendente da usare per soglia e
-    iperparametri.
-  - La soglia di decisione delle metriche riportate e' 0.5, fissata a priori.
-    L'analisi multi-soglia (threshold_sensitivity) e' DESCRITTIVA: la soglia
-    che indica e' scelta sul test set e non va usata come soglia del modello.
-  - Per impostazione predefinita nessun seed e' impostato: l'inizializzazione
-    dei pesi non e' riproducibile. --seed lo rende riproducibile.
+Pipeline:
+- Addestramento su serie temporali normalizzate tramite tsai/PyTorch.
+- Calcolo metriche di classificazione (Detection Rate, False Positive Rate, F1, AUC).
+- Esportazione del grafo in formato ONNX.
+- Generazione del set di calibrazione (npz/tar) per la quantizzazione INT8 (ST Edge AI).
 """
-
 import argparse
 import logging
 import os

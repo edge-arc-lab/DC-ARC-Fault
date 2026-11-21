@@ -1,3 +1,0 @@
-rietichetta_dataset_V v1
-train: 27770 finestre pubblicate (17370 arco / 10400 pre-arco) -> 25896 (19851 arco / 6045 pre-arco); scartate 1874 (di cui 20 senza t1_V); cambiate 0->1: 2481; 1->0: 0
-test: 7161 finestre pubblicate (4520 arco / 2641 pre-arco) -> 6674 (5074 arco / 1600 pre-arco); scartate 487 (di cui 10 senza t1_V); cambiate 0->1: 554; 1->0: 0

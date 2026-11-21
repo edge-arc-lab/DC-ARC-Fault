@@ -50,20 +50,16 @@ out_dir = args.out or os.path.dirname(os.path.abspath(args.dataset))
 os.makedirs(out_dir, exist_ok=True)
 
 # ── Carico dataset ────────────────────────────────────────────────────────────
-print(f"\n{'='*60}")
-print("  split_dataset.py — Train / Test Split per File Sorgente")
-print(f"{'='*60}\n")
-
-print(f"[1/4] Carico dataset: {args.dataset}")
+print(f"Caricamento dataset: {args.dataset}")
 data = np.load(args.dataset)
 X = data["X"]
 y = data["y"]
-print(f"      X shape: {X.shape}  |  y shape: {y.shape}")
-print(f"      label=0: {(y==0).sum()}  |  label=1: {(y==1).sum()}")
+print(f"  X: {X.shape}, y: {y.shape}")
+print(f"  label=0: {(y==0).sum()}, label=1: {(y==1).sum()}")
 
-print(f"\n[2/4] Carico metadati: {args.meta}")
+print(f"Caricamento metadati: {args.meta}")
 meta = pd.read_csv(args.meta)
-print(f"      Righe metadati: {len(meta)}")
+print(f"  Righe metadati: {len(meta)}")
 
 if len(meta) != len(y):
     print(f"ERRORE: metadati ({len(meta)}) e dataset ({len(y)}) hanno dimensioni diverse.")
@@ -81,11 +77,11 @@ unique_keys = {k: i for i, k in enumerate(meta["exp_key"].unique())}
 groups = meta["exp_key"].map(unique_keys).values
 n_groups = len(unique_keys)
 
-print(f"      File sorgente unici: {n_groups}")
-print(f"      Finestre per file (media): {len(y)/n_groups:.1f}")
+print(f"  File sorgente unici: {n_groups}")
+print(f"  Finestre per file (media): {len(y)/n_groups:.1f}")
 
 # ── Split ─────────────────────────────────────────────────────────────────────
-print(f"\n[3/4] GroupShuffleSplit  (test={args.test_size*100:.0f}%  seed={args.seed})")
+print(f"Esecuzione GroupShuffleSplit (test={args.test_size*100:.0f}%, seed={args.seed})...")
 
 gss = GroupShuffleSplit(n_splits=1, test_size=args.test_size, random_state=args.seed)
 train_idx, test_idx = next(gss.split(X, y, groups=groups))
@@ -102,19 +98,17 @@ if overlap:
     print(f"ERRORE DATA LEAKAGE: {len(overlap)} file presenti in entrambi gli split!")
     sys.exit(1)
 
-print(f"  ✓ Nessun file sorgente condiviso (leakage = 0)")
-print(f"\n  Train: {len(y_train):6d} finestre  da {len(groups_train):4d} file "
-      f"| label=0: {(y_train==0).sum():5d}  label=1: {(y_train==1).sum():5d}")
-print(f"  Test:  {len(y_test):6d} finestre  da {len(groups_test):4d} file "
-      f"| label=0: {(y_test==0).sum():5d}  label=1: {(y_test==1).sum():5d}")
+print("  Nessun file sorgente condiviso (leakage = 0)")
+print(f"  Train: {len(y_train):6d} finestre da {len(groups_train):4d} file "
+      f"(label=0: {(y_train==0).sum():5d}, label=1: {(y_train==1).sum():5d})")
+print(f"  Test:  {len(y_test):6d} finestre da {len(groups_test):4d} file "
+      f"(label=0: {(y_test==0).sum():5d}, label=1: {(y_test==1).sum():5d})")
 
-# Verifica che le proporzioni siano ragionevoli
 actual_test_frac = len(y_test) / len(y)
-print(f"\n  Frazione test effettiva: {actual_test_frac*100:.1f}%  "
-      f"(richiesta: {args.test_size*100:.0f}%)")
+print(f"  Frazione test effettiva: {actual_test_frac*100:.1f}%")
 
 # ── Salvo i file ──────────────────────────────────────────────────────────────
-print(f"\n[4/4] Salvo file in: {out_dir}")
+print(f"Salvataggio split in: {out_dir}")
 
 train_path = os.path.join(out_dir, "arc_dataset_train.npz")
 test_path  = os.path.join(out_dir, "arc_dataset_test.npz")
@@ -124,18 +118,17 @@ np.savez_compressed(test_path,  X=X_test,  y=y_test)
 
 size_train = os.path.getsize(train_path) / 1024 / 1024
 size_test  = os.path.getsize(test_path)  / 1024 / 1024
-print(f"  arc_dataset_train.npz  →  {size_train:.1f} MB")
-print(f"  arc_dataset_test.npz   →  {size_test:.1f} MB")
+print(f"  {train_path} ({size_train:.1f} MB)")
+print(f"  {test_path} ({size_test:.1f} MB)")
 
-# Salvo anche i metadati separati (utili per analisi successive)
 meta_train = meta.iloc[train_idx].reset_index(drop=True)
 meta_test  = meta.iloc[test_idx].reset_index(drop=True)
 meta_train_path = os.path.join(out_dir, "arc_dataset_meta_train.csv")
 meta_test_path  = os.path.join(out_dir, "arc_dataset_meta_test.csv")
 meta_train.to_csv(meta_train_path, index=False)
 meta_test.to_csv(meta_test_path,   index=False)
-print(f"  arc_dataset_meta_train.csv")
-print(f"  arc_dataset_meta_test.csv")
+print(f"  {meta_train_path}")
+print(f"  {meta_test_path}")
 
 # ── Report testuale ───────────────────────────────────────────────────────────
 report_path = os.path.join(out_dir, "split_report.txt")
@@ -163,11 +156,5 @@ with open(report_path, "w", encoding="utf-8") as f:
     test_files = meta.iloc[test_idx]["exp_key"].unique()
     for fn in sorted(test_files):
         f.write(f"  {fn}\n")
-print(f"  split_report.txt")
-
-print(f"\n{'='*60}")
-print("  FATTO — usa questi file da ora in poi:")
-print(f"  Training  →  arc_dataset_train.npz")
-print(f"  Test      →  arc_dataset_test.npz  (mai usare per training)")
-print(f"  Confronto float32/int8  →  arc_dataset_test.npz")
-print(f"{'='*60}\n")
+print(f"  {report_path}")
+print("Split completato con successo.")

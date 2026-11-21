@@ -1,44 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-train_arc_compare.py
-=====================
-Pipeline unificata per rilevamento archi elettrici DC/PV.
-
-Addestra e confronta tre approcci:
-    1. ridge   → MultiRocket + StandardScaler + RidgeClassifier
-    2. hydra   → MultiRocketHydra + RidgeClassifierCV (interno)
-    3. arcnet  → MultiRocket + StandardScaler + PCA + ArcNet
-
-NOTA sul deploy STM32:
-    Tutte e tre le pipeline usano MultiRocket come preprocessing.
-    MultiRocket non ha un export C/ONNX automatico, quindi nessuna
-    pipeline è deployabile su STM32 senza reimplementare manualmente
-    i kernel in C. ArcNet è la più avanzata perché la parte finale
-    (scaler + PCA + rete) è già pronta nel bundle, ma il preprocessing
-    rimane un lavoro da fare.
-
-Output:
-    results/ridge/bundle.pkl        bundle completo
-    results/ridge/config.json       metriche
-    results/hydra/bundle.pkl        bundle completo
-    results/hydra/config.json       metriche
-    results/arcnet/bundle.pkl       bundle completo (transformer+scaler+pca+model)
-    results/arcnet/config.json      metriche
-    results/comparison.json         confronto completo
-    results/comparison_metrics.csv
-    results/comparison_confusion.csv
-    results/comparison_report.txt
-    results/comparison_plots.png    grafici comparativi
-
-USO:
-    python train_arc_compare.py train.npz test.npz
-    python train_arc_compare.py train.npz test.npz --models ridge arcnet
-    python train_arc_compare.py train.npz test.npz --pca-components 128 --epochs 40
-
-REQUISITI:
-    pip install aeon scikit-learn numpy torch onnx matplotlib seaborn
+Pipeline di addestramento e benchmark comparativo per architetture basate su trasformata:
+    1. MultiRocket + StandardScaler + RidgeClassifier
+    2. MultiRocketHydra + RidgeClassifierCV
+    3. MultiRocket + StandardScaler + PCA + ArcNet (MLP)
 """
-
 import argparse
 import json
 import os

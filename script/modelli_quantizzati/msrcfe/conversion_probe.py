@@ -1,39 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-conversion_probe.py
-===================
-Strumenti per separare il costo di conversione FP32 <-> INT8 (nodi
-QuantizeLinear / DequantizeLinear ai bordi del grafo) dal costo di calcolo
-nei benchmark su STM32.
+Strumenti di analisi del grafo ONNX per quantificare il costo computazionale
+dei nodi di conversione FP32 <-> INT8 (QuantizeLinear / DequantizeLinear)
+rispetto al calcolo convoluzionale su target STM32.
 
-DOVE GIRA
-    Sul PC, con Python >= 3.9 e `pip install onnx onnxruntime numpy`.
-    Non serve la board, non servono i tool ST e non serve la GPU.
-    Lo script PRODUCE o ANALIZZA file .onnx: la misura sulla board resta
-    quella di ST Edge AI Developer Cloud (stessa scheda, stessa procedura
-    usata per i benchmark gia' fatti).
-
-SOTTOCOMANDI
-    inspect    analizza il modello INT8 scaricato dal Developer Cloud
-               (model_int8.onnx): trova i nodi di conversione ai bordi,
-               stima il loro costo e, se dai i cicli misurati, calcola i
-               cicli per MAC.
-    strip-io   crea una variante con ingresso e uscita gia' INT8 (toglie il
-               Quantize iniziale e il Dequantize finale) e verifica che
-               l'output coincida con quello del modello originale.
-               Benchmark(originale) - benchmark(variante) = costo di
-               conversione misurato sulla board.
-    relu-probe genera un modello minimo (solo Relu) + dataset di
-               calibrazione, da far passare per la procedura normale
-               (quantizzazione INT8 del Developer Cloud): il suo tempo e'
-               praticamente solo conversione.
-
-ESEMPI
-    python conversion_probe.py inspect model_int8.onnx --cycles 41859280 --mhz 600
-    python conversion_probe.py strip-io model_int8.onnx -o model_int8_ioint8.onnx
-    python conversion_probe.py relu-probe --out probe --dataset arc_dataset_train.npz
+Funzionalita':
+- inspect: individua nodi di quantizzazione/dequantizzazione ai bordi e stima cicli per MAC.
+- strip-io: genera varianti di modello con ingressi e uscite nativamente INT8.
+- relu-probe: genera un modello minimo sintetico per isolare il costo di conversione I/O.
 """
-
 import argparse
 import os
 import sys

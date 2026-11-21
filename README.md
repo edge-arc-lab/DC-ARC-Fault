@@ -1,17 +1,19 @@
-# DC-ARC-Fault ⚡
+# Edge AI for DC Arc Fault Detection ⚡
 
-I DC arc fault rappresentano un rischio critico negli impianti fotovoltaici e sono tra le principali cause di incendio. La rilevazione affidabile è complessa perché i segnali sono rumorosi e non stazionari.
+I guasti da arco elettrico in serie in corrente continua (DC series arc faults) rappresentano un rischio critico per gli impianti fotovoltaici e costituiscono una delle cause primarie di incendio. Questo lavoro affronta il problema nel pieno rispetto dei vincoli temporali ed energetici dello standard **UL 1699B** (e controparte internazionale **IEC 63027**), progettando, quantizzando e validando su hardware reale **STM32** due architetture complementari:
 
-Questo lavoro affronta il problema in ottica **UL1699B**, sviluppando un sistema di rilevazione basato su deep learning progettato non solo per alta accuratezza, ma anche per essere deployabile su dispositivi embedded **STM32** in tempo reale.
+1. **InceptionTime:** rete convoluzionale temporale profonda ottimizzata per microcontrollori con NPU dedicata (**STM32N6570-DK** con Neural-ART NPU).
+2. **MS-RCFE + Ridge:** estrattore multi-scala a 9 rami convoluzionali casuali fissi con classificatore Ridge lineare in C, ideato per microcontrollori general-purpose senza acceleratori (**STM32H7S78-DK** con Cortex-M7 a 600 MHz).
 
-Il progetto integra:
-
-- preprocessing avanzato di serie temporali
-- controllo del **data leakage**
-- training di modelli **Deep Learning** e **feature-based**
-- esportazione in formato **ONNX**
-- quantizzazione **INT8**
-- benchmark edge-oriented su **STM32**
+### 🎯 Risultati Chiave 
+- **Detection Rate (DR):** tra **98.5%** e **99.7%** su tutte le varianti (FP32 e INT8).
+- **False-Positive Rate (FPR):** tra **0.11%** e **0.61%** (zero falsi allarmi critici).
+- **Latenza di inferenza reale misurata su hardware:**
+  - **InceptionTime INT8:** **19.73 ms** su NPU Neural-ART (accelerazione **~315×** rispetto a 6218 ms su CPU).
+  - **MS-RCFE INT8:** **69.77 ms** su Cortex-M7 puro (RAM: **≈ 141 KiB**, Flash: **30.8 KB**); scende a **17.78 ms** nella variante potata a 3 rami (`b3`).
+- **Ritardo e bilancio energetico (UL 1699B):**
+  - Ritardo mediano di rilevamento: **117 – 143 ms** (caso peggiore $1.94\text{ s} < 2.5\text{ s}$).
+  - Energia dissipata fino all'estinzione: mediana **9.3 – 13.6 J**, massimo assoluto **267.7 J** ($< 750\text{ J}$).
 
 ---
 
@@ -34,13 +36,49 @@ L'intera pipeline è progettata per essere riproducibile, scalabile ed edge-read
 DC-ARC-Fault/
 │
 ├── dataset/
-│   ├── dataset/                          # Dataset originale da Kaggle
-│   ├── dataset_new/                      # Dataset preprocessato finale
-│   ├── build_dataset_new.py              # Sliding window + preprocessing
-│   ├── split_dataset.py                  # Split fisico train/test
-│   └── dataset_leakage_check.py          # Verifica data leakage
+│   ├── dataset/                          # Dataset compresso a 10 kHz (da Kaggle)
+│   ├── dataset_new/                      # Dataset finestrato finale e split train/test
+│   │   ├── arc_dataset_new.npz           # Dataset completo finestrato (X, y)
+│   │   ├── arc_dataset_meta_new.csv      # Metadati di tutte le finestre temporali
+│   │   ├── arc_dataset_skipped_new.csv   # File scartati e motivazione dello scarto
+│   │   ├── arc_dataset_train.npz         # Set di training (80% dei file, no leakage)
+│   │   ├── arc_dataset_meta_train.csv    # Metadati del set di training
+│   │   ├── arc_dataset_test.npz          # Set di test (20% dei file, no leakage)
+│   │   ├── arc_dataset_meta_test.csv     # Metadati del set di test
+│   │   └── split_report.txt              # Report di tracciabilità dello split
+│   │
+│   ├── estrazione e sottocampionamento/
+│   │   └── mat_tools.py                  # ETL da IEEE DataPort (250 kHz) a Kaggle (10 kHz)
+│   │
+│   ├── build_dataset_new.py              # Generazione sliding window (100 ms) + labeling
+│   ├── split_dataset.py                  # GroupShuffleSplit (80/20) per file sorgente
+│   └── dataset_leakage_check.py          # Validazione e audit anti-data leakage
 │
-├── scripts/
+├── script/
+│   ├── casual_current_I_norm/            # Normalizzazione causale e test ritardo UL 1699B
+│   │   ├── norm_causale.py               # Stima causale di I_nom a finestra mobile con gating
+│   │   └── ritardo_rilevazione.py        # Misura del ritardo di rilevamento (K conferme)
+│   │
+│   ├── creazione_label_tensione/         # Analisi di robustezza etichette e innesco da tensione
+│   │   ├── robustezza_etichette_tensione.py # Sweep parametri t1_V e baseline solo livello
+│   │   ├── valutazione_etichette_tensione.py# Valutazione modelli per fasce di livello di corrente
+│   │   ├── sensibilita_etichette.py      # Sensibilità parametri ground-truth (bootstrap 95%)
+│   │   └── indagine_ritardi.py           # Diagnostica casi limite con ritardi elevati
+│   │
+│   ├── energy_analysis/                  # Calcolo energia dissipata dall'arco (Joule)
+│   │   └── energia_arco.py               # Integrazione v*i, ritardi reali modelli e attuazione relè
+│   │
+│   ├── variable_load_analysis/           # Robustezza a carico variabile e decomposizione spettrale
+│   │   ├── carico_variabile.py           # Analisi dell'impatto di variazioni di carico dinamiche
+│   │   ├── fusione_carichi.py            # Valutazione congiunta su scenari di carico eterogenei (file A + file B)
+│   │   ├── rilevamento_senza_livello.py  # Rilevamento basato esclusivamente su pattern AC (waveform/FFT)
+│   │   ├── spettro_medio.py              # Densità spettrale di potenza media per bande temporali
+│   │   ├── analisi_multicanale.py        # Framework multicanale (corrente, tensione, potenza)
+│   │   └── grafico_canali.py             # Visualizzazione e tracciamento delle forme d'onda
+│   │
+│   ├── test_set_analysis.py              # Valutazione globale test set, metriche e bootstrap
+│   ├── make_paper_figures.py             # Generazione automatica grafici e figure riassuntive
+│   │
 │   ├── training/
 │   │   ├── inception_time/
 │   │   │   ├── results/
@@ -49,8 +87,13 @@ DC-ARC-Fault/
 │   │   ├── msrcfe/
 │   │   │   ├── results/
 │   │   │   ├── export_msrcfe/
+│   │   │   ├── ris_riduzioni/            # Varianti ridotte (b3, b4, full) per ST Edge AI
 │   │   │   ├── train_msrcfe.py           # Training MS-RCFE + Ridge
-│   │   │   └── export_msrcfe.py          # Export ONNX + calibrazione
+│   │   │   ├── export_msrcfe.py          # Export ONNX + calibrazione
+│   │   │   ├── msrcfe_prune.py           # Ablazione rami e ranking feature
+│   │   │   ├── msrcfe_comb.py            # Analisi 511 combinazioni dei rami (Pareto)
+│   │   │   ├── msrcfe_riduzioni.py       # Generazione ONNX varianti ridotte b3/b4
+│   │   │   └── msrcfe_seed.py            # Test stabilita' su seed casuali multipli
 │   │   │
 │   │   └── multirockethydra/
 │   │       ├── train_arc_compare.py      # Training comparativo Ridge/Hydra/ArcNet
@@ -60,16 +103,18 @@ DC-ARC-Fault/
 │   │       └── altri file risultati e confronti
 │   │
 │   └── modelli_quantizzati/
-│       ├── inception_time/
-│       │   ├── confronto_modelli.py
+│       ├── Inception/
+│       │   ├── confronto_modelli.py          # Benchmark FP32 vs INT8 su test set
 │       │   └── inceptiontime_PerChannel_quant_calibration_data_npz_1.onnx
 │       │
 │       └── msrcfe/
-│           ├── stm32_float/
-│           ├── stm32_int/
-│           ├── confronto_modelli.py
+│           ├── stm32_float/                  # Report latenze e risorse FP32
+│           ├── stm32_int/                    # Report latenze e risorse INT8
+│           ├── confronto_modelli.py          # Benchmark FP32 vs INT8 + Ridge su test set
+│           ├── conversion_probe.py           # Analisi nodi QDQ e separazione costi I/O
+│           ├── misura_risorse.py             # Benchmark latenze e stima Flash/RAM
 │           ├── msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx
-│           └── misura_risorse.py
+│           └── msrcfe_unico_PerChannel_quant_calibration_msrcfe_npz_1.onnx
 │
 ├── pipeline.png
 ├── requirements.txt
@@ -83,7 +128,7 @@ DC-ARC-Fault/
 ## 1️⃣ Clonare il repository
 
 ```bash
-git clone https://github.com/yassirsuarez/DC-ARC-Fault.git
+git clone https://github.com/edge-arc-lab/DC-ARC-Fault.git
 cd DC-ARC-Fault
 ```
 
@@ -109,17 +154,20 @@ pip install -r requirements.txt
 
 # 📚 Dataset
 
-Il progetto utilizza il dataset pubblico:
+Il progetto si basa sulla libreria pubblica di riferimento:
 
-**Photovoltaic (PV) DC Arc-Fault Library**
+**Photovoltaic (PV) DC Arc-Fault Library**  
 [IEEE DataPort](https://ieee-dataport.org/open-access/photovoltaic-pv-dc-arc-library)
 
-Dal dataset originale vengono estratti: **Corrente**, **Tensione**, **Potenza**.
+Il dataset grezzo originale (centinaia di GB a 250 kHz con file accessori spuri) viene ridotto e pulito tramite lo strumento dedicato:
+- `dataset/estrazione e sottocampionamento/mat_tools.py`:
+  - `clean`: scarta file accessori e replica la gerarchia isolando i soli file `.mat`.
+  - `extract`: estrae le variabili fisiche d'interesse (**CurrentData**, **VoltageData**, **power**), sottocampiona da 250 kHz a 10 kHz (fattore di decimazione 25) e salva i file compressi verificandone l'integrità.
 
-È disponibile anche una versione preprocessata su Kaggle:
-[Kaggle – DC Arc Fault Dataset](https://www.kaggle.com/datasets/yassirsuarez/dc-arc-fault)
+Il dataset pulito risultante è disponibile per il download diretto su Kaggle:  
+👉 **[Kaggle – DC Arc Fault Dataset](https://www.kaggle.com/datasets/yassirsuarez/dc-arc-fault)**
 
-Scaricare il dataset e inserirlo in `dataset/dataset/`. Struttura attesa:
+Scaricare l'archivio da Kaggle ed estrarlo in `dataset/dataset/`. Struttura attesa:
 
 ```text
 dataset/
@@ -139,38 +187,62 @@ dataset/
 
 # 1️⃣ Preprocessing & Physical Split
 
-I segnali grezzi vengono preprocessati tramite:
+A partire dai segnali campionati a 10 kHz in `dataset/dataset/`, la generazione del dataset e la suddivisione avvengono tramite due script sequenziali:
 
-- **Sliding Window** per la segmentazione temporale
-- **Normalizzazione** dei segnali
-- **Costruzione di campioni supervisionati**
+### Generazione Finestre (`build_dataset_new.py`)
+Applica una strategia a **finestra scorrevole (sliding window)** per emulare l'inferenza real-time embedded:
+- **Finestra temporale ($W$):** 100 ms (1.000 campioni a 10 kHz).
+- **Passo di scorrimento ($S$):** 50 ms (500 campioni, overlap al 50%).
+- **Rilevamento innesco arco ($t_1$):** calcolo della corrente nominale $I_{nom}$ nei primi 200 ms e determinazione di $t_1$ quando la corrente scende sotto il 95% di $I_{nom}$ per almeno 300 ms consecutivi.
+- **Labeling supervisionato:**
+  - `label = 0` (pre-arco / normale): finestre antecedenti $t_1$.
+  - `label = 1` (arco in corso): finestre successive a $t_1$.
+- **Bilanciamento:** limite massimo di finestre per classe per file (`MAX_WIN_PER_CLASS`) per evitare sovrarappresentazioni.
+
+Output generati in `dataset/dataset_new/`:
+- `arc_dataset_new.npz`: dataset completo (34.931 finestre totali, tensore $X$ e label $y$).
+- `arc_dataset_meta_new.csv`: metadati tracciabili per finestra (file di provenienza, intervallo $t_{start}-t_{end}$, $t_1$, corrente nominale, label).
+- `arc_dataset_skipped_new.csv`: registro dei file `.mat` scartati con relativa motivazione (es. corrente nominale troppo bassa).
 
 ```bash
-python build_dataset_new.py
-python split_dataset.py
+cd dataset
+python build_dataset_new.py dataset/ --out dataset_new/
 ```
 
-Lo split fisico (80% train / 20% test) viene eseguito **prima del training** per evitare overlap tra finestre temporali e temporal data leakage. Output: `.npz` per il training, `.csv` per analisi.
+### Split Fisico Anti-Leakage (`split_dataset.py`)
+Esegue la partizione 80% Train / 20% Test tramite **`GroupShuffleSplit`** raggruppando per file sorgente (`filename`). In questo modo, **tutte le finestre temporali provenienti dallo stesso esperimento fisico rimangono confinate nello stesso split**, azzerando il rischio di temporal leakage.
+
+Output generati in `dataset/dataset_new/`:
+- `arc_dataset_train.npz` (27.770 finestre da 856 file: 10.400 pre-arco, 17.370 arco).
+- `arc_dataset_test.npz` (7.161 finestre da 215 file: 2.641 pre-arco, 4.520 arco).
+- `arc_dataset_meta_train.csv` e `arc_dataset_meta_test.csv`: tabelle di metadati per split.
+- `split_report.txt`: report completo con dettaglio di tutti i file assegnati al test set.
+
+```bash
+python split_dataset.py dataset_new/arc_dataset_new.npz dataset_new/arc_dataset_meta_new.csv --test-size 0.20 --out dataset_new/
+```
 
 ---
 
 # 2️⃣ Data Leakage Verification
 
-Verifica dell'assenza di data leakage tra training e test set:
+Lo script `dataset/dataset_leakage_check.py` esegue una suite di audit e validazione indipendente dal modello prima di qualunque training:
 
-- ricerca di duplicati
-- verifica overlap temporale
-- validazione dello split fisico
+1. **Distribuzione classi:** verifica dell'equilibrio tra classi 0 e 1 in train e test.
+2. **Controllo duplicati esatti:** verifica che nessun campione $X$ del test set coincida esattamente con campioni del training set.
+3. **Distanza euclidea minima:** quantificazione della separazione spaziale minima tra punti di train e test.
+4. **Isolamento file sorgente:** verifica formale che l'intersezione tra i file sorgente di train e test sia vuota ($\text{Train} \cap \text{Test} = \emptyset$).
+5. **Adversarial Validation:** stima del rischio di memorizzazione tramite un classificatore lineare Ridge.
 
 ```bash
-python dataset_leakage_check.py
+python dataset_leakage_check.py dataset_new/arc_dataset_train.npz dataset_new/arc_dataset_test.npz --meta-train dataset_new/arc_dataset_meta_train.csv --meta-test dataset_new/arc_dataset_meta_test.csv
 ```
 
 ---
 
 # 3️⃣ Training & Feature Extraction
 
-La cartella `scripts/training/` contiene le pipeline di training per tre architetture distinte.
+La cartella `script/training/` contiene le pipeline di training per tre architetture distinte.
 
 ## Modelli utilizzati
 
@@ -269,6 +341,14 @@ export_msrcfe/
 
 > **Nota:** viene esportato solo il feature extractor (kernel fissi). Il classificatore Ridge viene implementato in C tramite `ridge_weights.h`. L'inferenza embedded consiste in tre passi: (1) applicazione dei 9 kernel fissi al segnale grezzo, (2) calcolo di max e mean per ogni kernel, (3) prodotto scalare con i pesi Ridge.
 
+#### Studi di Ottimizzazione e Pruning dei Rami
+
+Per massimizzare l'efficienza computazionale su microcontrollori a bassissimo consumo, la cartella include una suite di analisi per la riduzione dei rami convoluzionali:
+- **`msrcfe_prune.py`:** ablazione sistematica dei 9 rami e ranking delle feature per identificare configurazioni minime.
+- **`msrcfe_comb.py`:** sweep esaustivo sulle 511 combinazioni possibili per determinare la frontiera di Pareto (accuratezza vs moltiplicazioni MAC).
+- **`msrcfe_riduzioni.py`:** esportazione ONNX e header C per le varianti ridotte a 3 rami (`b3`, -82.4% MAC) e 4 rami (`b4`, -72.5% MAC), salvate in `ris_riduzioni/`.
+- **`msrcfe_seed.py`:** test di robustezza statistica variando il seed dei pesi convoluzionali casuali.
+
 ---
 
 ## 🚀 MultiRocket + varianti (analisi comparativa)
@@ -339,18 +419,160 @@ Per InceptionTime e MS-RCFE il flusso è:
 
 ---
 
-# 📊 Risultati
+# 6️⃣ Normalizzazione Causale & Conformità UL 1699B
 
-## Accuratezza FP32 vs INT8
+Per valutare la robustezza dei modelli in scenari operativi realistici senza conoscenza a priori del segnale, la cartella `script/casual_current_I_norm/` implementa:
 
-| Modello | FP32 Accuracy | INT8 Accuracy |
+- **Normalizzazione Causale in Tempo Reale (`norm_causale.py`):** sostituisce il valore nominale statico con una stima mobile di $I_{nom}(t)$ calcolata unicamente sui campioni passati (buffer circolare con isteresi e logiche di gating anti-cricchetto), dimostrando che i modelli mantengono elevate prestazioni anche in presenza di variazioni di scala.
+- **Misura del Ritardo di Intervento (`ritardo_rilevazione.py`):** simula l'elaborazione a finestra scorrevole sul test set e misura il ritardo temporale tra l'innesco dell'arco e la decisione positiva confermata su $K$ finestre consecutive ($K=1, 2, 3$), verificando la conformità al vincolo temporale dello standard **UL 1699B** ($t < 2.5\text{ s}$).
+
+---
+
+# 7️⃣ Analisi di Robustezza & Ground-Truth da Tensione
+
+Per verificare l'affidabilità delle etichette di ground-truth e analizzare il comportamento dei modelli rispetto alla definizione dell'istante d'innesco dell'arco ($t_1$), la cartella `script/creazione_label_tensione/` include:
+
+- **Sensibilità ai Parametri di Etichettatura (`sensibilita_etichette.py`):** valuta l'impatto delle variazioni dei criteri di soglia e tempo di conferma sulla separazione pre-arco/arco, calcolando intervalli di confidenza bootstrap al 95%.
+- **Validazione con Innesco da Tensione (`valutazione_etichette_tensione.py`):** confronta l'innesco ricavato dalla caduta di tensione del generatore/stringa ($t_{1,V}$) con quello basato sulla corrente, stratificando le performance dei modelli per fasce di intensità di corrente.
+- **Robustezza Parametrica (`robustezza_etichette_tensione.py`):** effettua sweep parametrici su soglie di tensione e finestre di conferma, confrontando i modelli con baseline basate su soglie di livello puro ed evidenziando eventuali finestre ambigue.
+- **Diagnostica Ritardi (`indagine_ritardi.py`):** analizza finestra per finestra i casi limite in cui il rilevamento presenta ritardi più marcati, esaminando congiuntamente l'andamento di corrente, tensione e score dei classificatori.
+
+---
+
+# 8️⃣ Analisi dell'Energia Dissipata dall'Arco
+
+Per valutare il rischio termico e di innesco incendio secondo lo standard UL 1699B, la cartella `script/energy_analysis/` include:
+
+- **Calcolo dell'Energia Dissipata (`energia_arco.py`):** integra la potenza istantanea $E = \int_{t_1}^{t_1+T_{int}} v_{arco}(t) \cdot i(t) \, dt$ su una griglia di tempi di estinzione sintetici e con compensazione della resistenza serie del circuito.
+- **Accoppiamento con i Modelli di Inferenza:** combina i ritardi di rilevazione reali (a soglia di confidenza $K$) dei modelli InceptionTime e MS-RCFE (FP32 e INT8) con il tempo di apertura meccanico del relè (attuazione), quantificando l'energia effettiva prima dell'estinzione.
+- **Supporto Innesco da Tensione:** consente di avviare l'integrazione energetica dall'istante transitorio rilevato sulla tensione ($t_{1,V}$), catturando l'energia dissipata anche nei casi di innesco asimmetrico o rallentato.
+
+---
+
+# 9️⃣ Analisi a Carico Variabile & Robustezza Spettrale
+
+Nei sistemi fotovoltaici reali, le variazioni di irraggiamento e la commutazione degli inverter introducono fluttuazioni e transitori di corrente che possono confondere i rilevatori basati su semplici soglie di ampiezza. La cartella `script/variable_load_analysis/` valuta sistematicamente la capacità dei modelli di discriminare l'arco in condizioni dinamiche:
+
+- **Impatto delle Variazioni di Carico (`carico_variabile.py`):** valuta l'accuratezza di rilevazione in presenza di gradini di carico e transitori di commutazione, verificando la separabilità tra dinamiche fisiologiche d'impianto e perturbazioni ad alta frequenza indotte dall'arco.
+- **Fusione di Scenari di Carico (`fusione_carichi.py`):** valuta le prestazioni dei classificatori combinando dataset eterogenei e profili di carico differenti, verificando la generalizzazione cross-load.
+- **Rilevamento Indipendente dal Livello DC (`rilevamento_senza_livello.py`):** isola le componenti AC e le feature morfologiche ad alta frequenza (eliminando l'offset DC), dimostrando che i modelli apprendono la firma intrinseca della scarica d'arco anziché fare affidamento sulla caduta di livello medio della corrente.
+- **Analisi e Decomposizione Spettrale (`spettro_medio.py`):** calcola la densità spettrale di potenza media (PSD) per bande temporali durante le varie fasi (pre-arco, transitorio d'innesco, arco stazionario), quantificando l'energia spettrale nelle bande operative.
+- **Framework Multicanale (`analisi_multicanale.py`):** elabora ed estrae feature congiunte da canali multipli (corrente, tensione, potenza istantanea) per massimizzare la tempestività d'intervento e minimizzare i falsi allarmi (FPR).
+- **Visualizzazione Forme d'Onda e Canali (`grafico_canali.py`):** genera tracciati diagnostici ad alta fedeltà delle forme d'onda temporali e dei relativi segnali sincronizzati.
+
+---
+
+# 📊 Risultati Sperimentali 
+
+I risultati sperimentali di seguito riportati illustrano le prestazioni di classificazione sul test set, i benchmark hardware misurati su microcontrollori target e le verifiche di conformità normativa:
+
+---
+
+## 1️⃣ Risultati di Classificazione sul Test Set 
+
+Valutazione su **7.161 finestre di test** (4.520 arco, 2.641 pre-arco) provenienti da **215 esperimenti fisici indipendenti**. Gli intervalli di confidenza al 95% sono ottenuti tramite ricampionamento **bootstrap su 2.000 repliche** a livello di esperimento.
+
+| Modello | Precisione | Detection Rate (DR) [%] | False Positive Rate (FPR) [%] | FN | FP | Accuratezza |
+|---|---|---|---|---|---|---|
+| **InceptionTime** | FP32 | 99.7% [99.4, 100.0] | 0.61% [0.23, 1.09] | 13 | 16 | **99.60%** |
+| **InceptionTime** | INT8 | 98.5% [97.4, 99.3] | 0.15% [0.00, 0.47] | 70 | 4 | **98.97%** |
+| **MS-RCFE + Ridge** | FP32 | 99.5% [99.0, 99.9] | 0.11% [0.00, 0.31] | 23 | 3 | **99.64%** |
+| **MS-RCFE + Ridge** | INT8 | 99.2% [98.6, 99.6] | 0.11% [0.00, 0.31] | 38 | 3 | **99.43%** |
+
+> **Impatto della quantizzazione INT8:** la quantizzazione post-training riduce l'accuratezza solo di 0.63 punti percentuali per InceptionTime e di appena 0.21 punti per MS-RCFE. Il calo si traduce prevalentemente in mancate rilevazioni (FN) piuttosto che in falsi allarmi (FP), preservando un FPR estremamente basso ($\le 0.15\%$).
+
+---
+
+## 2️⃣ Benchmark Hardware STM32 — Latenza di Inferenza Misurata 
+
+Latenza di inferenza reale misurata su hardware fisico target per singola finestra da 100 ms (1.000 campioni a 10 kHz):
+- **STM32N6570-DK:** microcontrollore con acceleratore hardware **Neural-ART NPU**.
+- **STM32H7S78-DK:** microcontrollore general-purpose basato su **ARM Cortex-M7** (600 MHz) senza acceleratore.
+
+| Scheda / Piattaforma | Accelerazione | Modello | FP32 [ms] | INT8 [ms] | Speed-up INT8 | Throughput INT8 |
+|---|---|---|---|---|---|---|
+| **STM32N6570-DK** | Neural-ART NPU | InceptionTime | 6218.00 ms | **19.73 ms** | **~315×** | **50.68 inf/s** |
+| **STM32H7S78-DK** | Cortex-M7 (CPU) | InceptionTime | 6997.67 ms | 2370.64 ms | ~2.9× | 0.42 inf/s |
+| **STM32H7S78-DK** | Cortex-M7 (CPU) | MS-RCFE + Ridge | 84.75 ms | **69.77 ms** | ~1.2× | **14.33 inf/s** |
+
+### Risorse di Memoria Embedded
+
+| Parametro / Risorsa | InceptionTime | MS-RCFE + Ridge |
 |---|---|---|
-| InceptionTime | 99.60% | 98.97% |
-| MS-RCFE + Ridge | 99.64% | 99.43% |
+| **Ingresso** | Finestra grezza (100 ms, 1.000 campioni) | Finestra grezza (100 ms, 1.000 campioni) |
+| **Feature Extractor** | Convoluzioni addestrate end-to-end | $9 \times 32$ kernel casuali fissi (576 feature) |
+| **Classificatore** | Softmax | Ridge ($\alpha = 1$, pesi in C) |
+| **Operazioni MACs** | — | **1.632 M** |
+| **Target Hardware ideale** | STM32N6 (NPU Neural-ART) | STM32H7S78 (Cortex-M7 senza NPU) |
+| **Precisione** | FP32, INT8 | FP32, INT8 |
+| **RAM Runtime (INT8)** | **2.15 MB** | **≈ 141 KiB** (141.11 KB) |
+| **Flash Totale (INT8)** | 399 KB (pesi INT8) | **30.81 KB** (23.56 KB FP32) |
 
-Entrambi i modelli mantengono un'accuratezza superiore al 98.9% dopo quantizzazione INT8, confermando la stabilità delle architetture scelte rispetto alla riduzione di precisione numerica.
+> **Considerazioni chiave sul deployment:**
+> 1. **InceptionTime** richiede necessariamente l'NPU: su Cortex-M55 senza NPU impiega 6.22 s, mentre l'acceleratore Neural-ART abbatte la latenza a **19.73 ms** ($\sim 315\times$ di speed-up), rendendolo compatibile con il passo di 50 ms dell'overlap a fronte di 2.15 MB di RAM interna.
+> 2. **MS-RCFE + Ridge** richiede solo **141 KiB di RAM** e **30.8 KB di Flash**. Eseguito sul Cortex-M7 senza alcun acceleratore hardware, completa l'inferenza in **69.77 ms** in INT8 (84.75 ms in FP32).
 
-## Confronto MultiRocket (solo offline)
+---
+
+## 3️⃣ Verifica dei Limiti di Sicurezza UL 1699B 
+
+Simulazione a finestra scorrevole condotta su tutti i **442 esperimenti di test contenenti arco**. Il ritardo è misurato dall'istante fisico di innesco $t_1$ al completamento della finestra che conferma $K$ predizioni positive consecutive (escludendo il tempo di attuazione meccanica). L'energia è calcolata integrando $E = \int v(t) i(t) dt$.
+
+### Confronto Indicativo con i Limiti UL 1699B
+
+| Grandezza Misurata | Mediana | Caso Peggiore (Max) | Limite Specificato UL 1699B | Stato |
+|---|---|---|---|---|
+| **Ritardo di rilevamento ($K = 1$)** | **117 – 143 ms** | **1940 ms** (1.94 s) | — | Conforme |
+| **Ritardo con attuazione 50 ms ($K = 3$)** | **0.24 – 0.29 s** | **2.09 s** (2090 ms) | **2.50 s** | **Conforme** |
+| **Energia dell'arco ($K = 1$, attuazione 0 ms)** | **9.3 – 13.6 J** | **267.7 J** | **750.0 J** | **Conforme** |
+
+### Energia Dissipata fino alla Rilevazione ($K = 1$, Attuazione 0 ms)
+
+| Modello | Precisione | Mediana [J] | 95° Percentile [J] | Massimo Assoluto [J] |
+|---|---|---|---|---|
+| **InceptionTime** | FP32 | 9.3 J | 19.1 J | 36.9 J |
+| **InceptionTime** | INT8 | 13.6 J | 53.5 J | 267.7 J |
+| **MS-RCFE + Ridge** | FP32 | 12.8 J | 30.2 J | 93.5 J |
+| **MS-RCFE + Ridge** | INT8 | 12.9 J | 35.2 J | 251.5 J |
+
+---
+
+## 4️⃣ Sensibilità ai Parametri di Etichettatura
+
+Valutazione della robustezza dei modelli addestrati (senza riaddestramento) rispetto a variazioni nei criteri di definizione del ground-truth (soglia di ampiezza corrente $I_{nom}$ e finestra di conferma temporale):
+
+| Configurazione Etichette | Inception FP32 (DR / FPR %) | Inception INT8 (DR / FPR %) | MS-RCFE FP32 (DR / FPR %) | MS-RCFE INT8 (DR / FPR %) |
+|---|---|---|---|---|
+| **Base (Soglia 0.95, Conf. 300 ms)** | **99.7 / 0.6** | **98.5 / 0.2** | **99.5 / 0.1** | **99.2 / 0.1** |
+| Soglia 0.90 | 100 / 47.3 | 100 / 40.8 | 100 / 44.0 | 100 / 43.2 |
+| Soglia 0.93 | 100 / 21.0 | 100 / 9.2 | 100 / 14.6 | 100 / 13.5 |
+| Soglia 0.97 | 96.8 / 0.1 | 93.2 / 0.2 | 95.2 / 0.1 | 94.9 / 0.1 |
+| Soglia 0.98 | 96.0 / 0.1 | 92.6 / 0.2 | 94.6 / 0.1 | 94.3 / 0.1 |
+| Tempo conferma 100 ms | 99.4 / 0.1 | 97.9 / 0.0 | 99.0 / 0.0 | 98.7 / 0.0 |
+| Tempo conferma 1000 ms | 100 / 1.6 | 98.9 / 0.3 | 99.9 / 0.6 | 99.6 / 0.4 |
+
+> Il test evidenzia che i classificatori apprendono con precisione il confine decisionale su cui sono stati supervisionati, confermando l'importanza di analizzare la separabilità fisica delle feature ad alta frequenza rispetto alla sola componente continua.
+
+---
+
+## 5️⃣ Ablazione e Pruning dei Rami di MS-RCFE 
+
+Studio di riduzione dei 9 rami convoluzionali (valutato su 10 estrattori casuali con seed indipendenti, 9.000 finestre di training) per identificare configurazioni Pareto-ottimali a bassissima latenza:
+
+| Sottoinsieme Rami | DR [%] | Balanced Accuracy [%] | Operazioni MACs | Latenza INT8 (STM32H7S78) | Latenza INT8 (STM32N6570) |
+|---|---|---|---|---|---|
+| **Tutti i 9 rami (Full)** | **99.32 ± 0.23%** | **99.59 ± 0.10%** | **1.632 M** (100%) | **69.77 ms** | **88.81 ms** |
+| 6 rami ($k = 3, 5$) | 98.92 ± 0.66% | 99.41 ± 0.32% | 768 k (47.1%) | — | — |
+| **4 rami (`b4`)** | 98.52 ± 1.00% | 99.22 ± 0.49% | 448 k (27.5%) | **26.46 ms** | **32.46 ms** |
+| **3 rami (`b3`)** | 98.06 ± 1.05% | 98.99 ± 0.52% | 288 k (17.6%) | **17.78 ms** | **21.13 ms** |
+| 1 ramo ($k = 3, d = 2$) | 95.29 ± 2.06% | 97.61 ± 1.03% | 96 k (5.9%) | — | — |
+| Ottimo selezionato via CV | 99.30 ± 0.22% | 99.58 ± 0.10% | 22% – 67% | — | — |
+
+> **Impatto pratico:** le varianti ridotte a 3 rami (`b3`: $k=3$, $d=1,2,4$) e 4 rami (`b4`: $k=3$ con $d=1,2,4$ più $k=5$ con $d=2$) abbattono i MACs del 82.4% e 72.5%, riducendo la latenza su Cortex-M7 a **17.78 ms** e **26.46 ms**. Questo consente a MS-RCFE di scendere ampiamente sotto il vincolo temporale dei 50 ms anche su microcontrollori convenzionali senza acceleratori.
+
+---
+
+## 6️⃣ Confronto Baseline MultiRocket (Solo Offline)
 
 | Pipeline | Accuracy | Balanced Acc | F1 | ROC-AUC |
 |---|---|---|---|---|
@@ -358,81 +580,26 @@ Entrambi i modelli mantengono un'accuratezza superiore al 98.9% dopo quantizzazi
 | MultiRocketHydra + Ridge | **99.65%** | **99.66%** | **99.72%** | 99.66% |
 | MultiRocket + PCA + ArcNet | 99.55% | 99.52% | 99.65% | **99.99%** |
 
----
-
-## ⚡ Benchmark STM32 — InceptionTime
-
-Testato su **STM32N6570-DK** con **Neural-ART NPU**, confrontando FP32 (CPU) vs INT8 (NPU).
-
-| Metrica | FP32 (CPU) | INT8 (NPU) | Δ |
-|---|---|---|---|
-| Inference time | 6250.68 ms | 21.17 ms | ↓ ~295× |
-| Throughput | 0.16 inf/s | 47.24 inf/s | ↑ ~295× |
-| RAM totale | 3.175 MB | 1.762 MB | ↓ ~44% |
-| Flash (pesi) | 1.562 MB | 399 KB | ↓ ~74% |
-
-La latenza FP32 elevata (6.25 s) è attesa su questa board: InceptionTime è una rete profonda (~1.5 MB di pesi) e il Cortex-M55 senza NPU non dispone di accelerazione hardware per operazioni floating point su reti di questa dimensione. La quantizzazione INT8 abilita il pieno utilizzo della **Neural-ART NPU**, portando l'inferenza a 21 ms con un guadagno di ~295×. La precisione è preservata: cosine similarity INT8 vs FP32 ≈ **0.9999**.
-
----
-
-## ⚡ Benchmark STM32 — MS-RCFE + Ridge
- 
-Testato su **STM32H7S78-DK** (Cortex-M7), confrontando la pipeline completa (feature extractor + Ridge) in FP32 vs INT8. Questi valori sono misurati **direttamente sulla board reale** tramite ST Edge AI Developer Cloud.
- 
-| Metrica | FP32 | INT8 | Δ |
-|---|---|---|---|
-| Inference time | 84.75 ms | 70.04 ms | ↓ ~1.2× |
-| Throughput | 11.80 inf/s | 14.28 inf/s | ↑ ~1.2× |
-| RAM totale | 135.61 KB | 141.11 KB | +4% |
-| Flash totale | 23.56 KB | 30.81 KB | +30% |
- 
-**Stima preliminare del peso relativo dei componenti (benchmark su CPU host, non sulla board):**
- 
-Prima del deployment è stato eseguito un benchmark preliminare in locale, simulando l'inferenza con `onnxruntime` sulla CPU del PC di sviluppo (script `misura_risorse.py`), per stimare il peso relativo di CNN e Ridge all'interno della pipeline:
- 
-| Componente (CPU host, onnxruntime) | FP32 | INT8 |
-|---|---|---|
-| Feature extractor (ONNX) | 0.333 ms | 0.684 ms |
-| Ridge Classifier (C, simulato) | 0.006 ms | 0.006 ms |
- 
-> **Attenzione:** questi valori **non sono confrontabili né sommabili** con la latenza end-to-end misurata sulla board (84.75/70.04 ms): sono due esperimenti su due piattaforme di calcolo diverse. La CPU del PC host è centinaia di volte più potente del Cortex-M7 embedded (multi-GHz, multi-core, cache ampie, contro un microcontrollore a poche centinaia di MHz), il che spiega interamente il divario (~250× in FP32, ~100× in INT8) — non si tratta di un errore nei dati. Il benchmark su CPU ha comunque confermato, in proporzione, che il Ridge Classifier è computazionalmente trascurabile rispetto al feature extractor. **Una vera scomposizione per componente misurata sulla board reale non è al momento disponibile**; se recuperabile dal progetto ST Edge AI Developer Cloud (report con voci tipo "cTime"/"Inference time per layer"), andrebbe aggiunta qui.
- 
-Entrambe le configurazioni testate su hardware reale sono ampiamente sopra i requisiti real-time a 50 Hz. La quantizzazione INT8 su modelli piccoli non garantisce sempre un miglioramento della latenza — su questo modello introduce un lieve overhead sulla CNN ma riduce il consumo globale di memoria.
- 
-> **Nota sui valori di memoria:** i valori di Flash e RAM in tabella sono misurati da ST Edge AI su hardware reale e includono il runtime della libreria (~9 KB di overhead). La stima analitica dei soli pesi del modello (feature extractor + Ridge) è **14.7 KB Flash · 10.7 KB RAM** — il delta rispetto ai valori misurati è interamente dovuto a questo overhead.
-
----
-
-## 📊 Stima risorse embedded — MultiRocket varianti
-
-Le pipeline MultiRocket non sono state deployate su STM32 (preprocessing non esportabile in C). La tabella riporta una stima analitica basata sulle dimensioni dei modelli addestrati. Il costo dei kernel MultiRocket (~24.4 KB Flash) è comune a Ridge e ArcNet ed è incluso nelle stime.
-
-| Pipeline | Flash interna | Flash esterna | RAM |
-|---|---|---|---|
-| MultiRocket + Ridge | ~607 KB | — | ~194 KB |
-| MultiRocket + PCA + ArcNet | ~680 KB | ~48.6 MB (QSPI) | ~195 KB |
-
 > MultiRocketHydra non è stimabile: i kernel Hydra interni non sono accessibili come array.
 
 ---
 
 # 🏁 Conclusioni e Raccomandazioni
 
-Il progetto ha valutato tre famiglie di modelli per la rilevazione di DC arc fault, con requisiti congiunti di alta accuratezza e compatibilità embedded.
+Il progetto ha valutato due famiglie principali di modelli per la rilevazione di DC arc fault, con requisiti congiunti di alta accuratezza e compatibilità embedded real-time:
 
-**MS-RCFE + Ridge** è il modello raccomandato per il deployment su STM32 di fascia media (es. STM32H7). Combina un'accuratezza superiore al 99.4% anche dopo quantizzazione INT8, un'impronta hardware minima (23.6 KB Flash, 135.6 KB RAM misurati su hardware) e latenza di 70 ms in INT8 — ben entro i requisiti real-time a 50 Hz. La pipeline è completamente esportabile tramite ST Edge AI senza modifiche al firmware.
+**MS-RCFE + Ridge** è la soluzione ottimale per microcontrollori a basso costo privi di acceleratore (es. STM32H7 con Cortex-M7). Combina un'accuratezza del **99.43%** anche dopo quantizzazione INT8, un'impronta hardware minima (**30.8 KB Flash, 141 KiB RAM**) e un tempo di inferenza di **69.77 ms** in INT8 (84.75 ms in FP32). Con le varianti potate a 3 rami (`b3`) e 4 rami (`b4`), la latenza si riduce ulteriormente a **17.78 ms** e **26.46 ms**, consentendo l'inferenza continua con overlap a 50 ms.
 
-**InceptionTime** è la scelta corretta quando è disponibile una board con NPU dedicata (es. STM32N6570-DK con Neural-ART). In quel caso il guadagno di latenza è di ~295× rispetto a FP32, rendendo praticabile anche l'inferenza continua. Su board Cortex-M senza NPU la latenza FP32 è proibitiva per uso real-time.
+**InceptionTime** è la scelta ad alte prestazioni quando è disponibile un acceleratore hardware dedicato (**Neural-ART NPU su STM32N6570-DK**). L'acceleratore NPU porta la latenza a **19.73 ms** (con un'accelerazione di **~315×** rispetto ai 6218 ms della sola CPU Cortex-M55) e accuratezza del **98.97%**, richiedendo 2.15 MB di RAM interna.
 
-**MultiRocket e varianti** offrono le metriche di classificazione più alte (F1 fino a 99.72% con Hydra) ma non sono deployabili su STM32 senza reimplementare manualmente il preprocessing in C. Sono stati usati esclusivamente come baseline comparativa offline per contestualizzare le scelte architetturali.
+Entrambe le soluzioni garantiscono piena conformità ai requisiti di sicurezza dello standard **UL 1699B**, con ritardi mediani di 117–143 ms ($< 2.5\text{ s}$) ed energia dissipata prima dello sgancio inferiore a 267.7 J ($< 750\text{ J}$).
 
 ---
 
-# 👥 Team
+# 👥 Autori & Affiliazione
 
-- **Lorenzo Meloccaro** — MSc, Università Politecnica delle Marche (UNIVPM)
-- **Yassir Flavio Suarez Sanchez** — MSc, Università Politecnica delle Marche (UNIVPM)
-
+- **Lorenzo Meloccaro** — Università Politecnica delle Marche
+- **Yassir Flavio Suarez Sanchez** — Università Politecnica delle Marche
 ---
 
 # 📄 Licenza

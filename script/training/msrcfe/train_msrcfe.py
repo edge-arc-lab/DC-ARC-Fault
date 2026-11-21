@@ -1,34 +1,20 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-train_msrcfe.py
-=========================
-Multi-scale CNN + Ridge per export STM32:
+Addestramento dell'architettura MS-RCFE (Multi-Scale Random Convolutional Feature Extractor)
+combinata con un classificatore lineare Ridge.
 
-✔ dataset già separato (train/test esterni)
-✔ dataset già bilanciato
-✔ feature extractor CNN multi-scala
-✔ Ridge classifier per semplicità e export
-✔ salva modello per analisi/ONNX/edge pipeline
-
-Esempio:
-python train_msrcfe.py --train train.npz --test test.npz --out results
-
-NOTE (v2, 2026-10-07)
-  - I pesi dei kernel convoluzionali sono casuali e NON addestrati. Per
-    impostazione predefinita nessun seed e' impostato (come nei run
-    originali): rieseguire lo script produce kernel diversi. Il modello
-    pubblicato e' quello in results/msrcfe_bundle.pkl. --seed lo rende
-    riproducibile.
-  - Il test set e' usato solo per la valutazione finale; non esiste un
-    validation set per scegliere iperparametri (n_kernels=32, alpha=1.0).
+Pipeline:
+- Estrazione feature tramite 9 banchi convoluzionali casuali multi-scala con global pooling.
+- Fit del classificatore Ridge (soluzione in forma chiusa).
+- Salvataggio dei pesi (pt/pkl) e dei coefficienti vettoriali (.npy) per export embedded.
 """
-
 import argparse
-import os
-import numpy as np
 import logging
+import os
 import pickle
 
+import numpy as np
 import torch
 import torch.nn as nn
 
