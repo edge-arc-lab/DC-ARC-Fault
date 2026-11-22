@@ -21,7 +21,7 @@ except ImportError:                      # tqdm e' facoltativo
 
 # --- PERCORSI DI DEFAULT (relativi al repository) ---
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]  # script/modelli_quantizzati/msrcfe -> radice del repo
+ROOT = HERE.parents[2]  # script/quantized_models/msrcfe -> radice del repo
 
 PATH_ORIGINALE = ROOT / "script" / "training" / "msrcfe" / "export_msrcfe" / "msrcfe.onnx"
 PATH_QUANTIZZATO = HERE / "msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx"  # da ST Edge AI

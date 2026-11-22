@@ -9,7 +9,7 @@ import numpy as np
 QUI = Path(__file__).resolve().parent
 if str(QUI) not in sys.path:
     sys.path.insert(0, str(QUI))
-import analisi_multicanale as tm
+import multichannel_analysis as tm
 
 nc = tm.nc
 

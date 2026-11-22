@@ -1,11 +1,11 @@
-# Edge AI for DC Arc Fault Detection ⚡
+# Edge AI for DC Arc Fault Detection
 
 I guasti da arco elettrico in serie in corrente continua (DC series arc faults) rappresentano un rischio critico per gli impianti fotovoltaici e costituiscono una delle cause primarie di incendio. Questo lavoro affronta il problema nel pieno rispetto dei vincoli temporali ed energetici dello standard **UL 1699B** (e controparte internazionale **IEC 63027**), progettando, quantizzando e validando su hardware reale **STM32** due architetture complementari:
 
 1. **InceptionTime:** rete convoluzionale temporale profonda ottimizzata per microcontrollori con NPU dedicata (**STM32N6570-DK** con Neural-ART NPU).
 2. **MS-RCFE + Ridge:** estrattore multi-scala a 9 rami convoluzionali casuali fissi con classificatore Ridge lineare in C, ideato per microcontrollori general-purpose senza acceleratori (**STM32H7S78-DK** con Cortex-M7 a 600 MHz).
 
-### 🎯 Risultati Chiave 
+### Risultati Chiave
 - **Detection Rate (DR):** tra **98.5%** e **99.7%** su tutte le varianti (FP32 e INT8).
 - **False-Positive Rate (FPR):** tra **0.11%** e **0.61%** (zero falsi allarmi critici).
 - **Latenza di inferenza reale misurata su hardware:**
@@ -17,7 +17,7 @@ I guasti da arco elettrico in serie in corrente continua (DC series arc faults) 
 
 ---
 
-# 🧠 Obiettivo del Progetto
+# Obiettivo del Progetto
 
 L'obiettivo è sviluppare un sistema di classificazione capace di identificare fault da arco elettrico DC in impianti fotovoltaici, ottimizzando contemporaneamente:
 
@@ -30,7 +30,7 @@ L'intera pipeline è progettata per essere riproducibile, scalabile ed edge-read
 
 ---
 
-# 📁 Struttura del Progetto
+# Struttura del Progetto
 
 ```text
 DC-ARC-Fault/
@@ -55,26 +55,26 @@ DC-ARC-Fault/
 │   └── dataset_leakage_check.py          # Validazione e audit anti-data leakage
 │
 ├── script/
-│   ├── casual_current_I_norm/            # Normalizzazione causale e test ritardo UL 1699B
-│   │   ├── norm_causale.py               # Stima causale di I_nom a finestra mobile con gating
-│   │   └── ritardo_rilevazione.py        # Misura del ritardo di rilevamento (K conferme)
+│   ├── causal_current_norm/            # Normalizzazione causale e test ritardo UL 1699B
+│   │   ├── causal_norm.py               # Stima causale di I_nom a finestra mobile con gating
+│   │   └── detection_delay.py        # Misura del ritardo di rilevamento (K conferme)
 │   │
-│   ├── creazione_label_tensione/         # Analisi di robustezza etichette e innesco da tensione
-│   │   ├── robustezza_etichette_tensione.py # Sweep parametri t1_V e baseline solo livello
-│   │   ├── valutazione_etichette_tensione.py# Valutazione modelli per fasce di livello di corrente
-│   │   ├── sensibilita_etichette.py      # Sensibilità parametri ground-truth (bootstrap 95%)
-│   │   └── indagine_ritardi.py           # Diagnostica casi limite con ritardi elevati
+│   ├── voltage_label_creation/         # Analisi di robustezza etichette e innesco da tensione
+│   │   ├── voltage_label_robustness.py # Sweep parametri t1_V e baseline solo livello
+│   │   ├── voltage_label_evaluation.py# Valutazione modelli per fasce di livello di corrente
+│   │   ├── label_sensitivity.py      # Sensibilità parametri ground-truth (bootstrap 95%)
+│   │   └── delay_analysis.py           # Diagnostica casi limite con ritardi elevati
 │   │
 │   ├── energy_analysis/                  # Calcolo energia dissipata dall'arco (Joule)
-│   │   └── energia_arco.py               # Integrazione v*i, ritardi reali modelli e attuazione relè
+│   │   └── arc_energy.py               # Integrazione v*i, ritardi reali modelli e attuazione relè
 │   │
 │   ├── variable_load_analysis/           # Robustezza a carico variabile e decomposizione spettrale
-│   │   ├── carico_variabile.py           # Analisi dell'impatto di variazioni di carico dinamiche
-│   │   ├── fusione_carichi.py            # Valutazione congiunta su scenari di carico eterogenei (file A + file B)
-│   │   ├── rilevamento_senza_livello.py  # Rilevamento basato esclusivamente su pattern AC (waveform/FFT)
-│   │   ├── spettro_medio.py              # Densità spettrale di potenza media per bande temporali
-│   │   ├── analisi_multicanale.py        # Framework multicanale (corrente, tensione, potenza)
-│   │   └── grafico_canali.py             # Visualizzazione e tracciamento delle forme d'onda
+│   │   ├── variable_load.py           # Analisi dell'impatto di variazioni di carico dinamiche
+│   │   ├── load_fusion.py            # Valutazione congiunta su scenari di carico eterogenei (file A + file B)
+│   │   ├── level_free_detection.py  # Rilevamento basato esclusivamente su pattern AC (waveform/FFT)
+│   │   ├── mean_spectrum.py              # Densità spettrale di potenza media per bande temporali
+│   │   ├── multichannel_analysis.py        # Framework multicanale (corrente, tensione, potenza)
+│   │   └── channel_plot.py             # Visualizzazione e tracciamento delle forme d'onda
 │   │
 │   ├── test_set_analysis.py              # Valutazione globale test set, metriche e bootstrap
 │   ├── make_paper_figures.py             # Generazione automatica grafici e figure riassuntive
@@ -87,12 +87,12 @@ DC-ARC-Fault/
 │   │   ├── msrcfe/
 │   │   │   ├── results/
 │   │   │   ├── export_msrcfe/
-│   │   │   ├── ris_riduzioni/            # Varianti ridotte (b3, b4, full) per ST Edge AI
+│   │   │   ├── reduction_results/            # Varianti ridotte (b3, b4, full) per ST Edge AI
 │   │   │   ├── train_msrcfe.py           # Training MS-RCFE + Ridge
 │   │   │   ├── export_msrcfe.py          # Export ONNX + calibrazione
 │   │   │   ├── msrcfe_prune.py           # Ablazione rami e ranking feature
-│   │   │   ├── msrcfe_comb.py            # Analisi 511 combinazioni dei rami (Pareto)
-│   │   │   ├── msrcfe_riduzioni.py       # Generazione ONNX varianti ridotte b3/b4
+│   │   │   ├── msrcfe_combinations.py            # Analisi 511 combinazioni dei rami (Pareto)
+│   │   │   ├── msrcfe_reductions.py       # Generazione ONNX varianti ridotte b3/b4
 │   │   │   └── msrcfe_seed.py            # Test stabilita' su seed casuali multipli
 │   │   │
 │   │   └── multirockethydra/
@@ -102,7 +102,7 @@ DC-ARC-Fault/
 │   │       ├── ridge/
 │   │       └── altri file risultati e confronti
 │   │
-│   └── modelli_quantizzati/
+│   └── quantized_models/
 │       ├── Inception/
 │       │   ├── confronto_modelli.py          # Benchmark FP32 vs INT8 su test set
 │       │   └── inceptiontime_PerChannel_quant_calibration_data_npz_1.onnx
@@ -112,7 +112,7 @@ DC-ARC-Fault/
 │           ├── stm32_int/                    # Report latenze e risorse INT8
 │           ├── confronto_modelli.py          # Benchmark FP32 vs INT8 + Ridge su test set
 │           ├── conversion_probe.py           # Analisi nodi QDQ e separazione costi I/O
-│           ├── misura_risorse.py             # Benchmark latenze e stima Flash/RAM
+│           ├── resource_measurement.py             # Benchmark latenze e stima Flash/RAM
 │           ├── msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx
 │           └── msrcfe_unico_PerChannel_quant_calibration_msrcfe_npz_1.onnx
 │
@@ -123,16 +123,16 @@ DC-ARC-Fault/
 
 ---
 
-# ⚙️ Installazione
+# Installazione
 
-## 1️⃣ Clonare il repository
+## 1. Clonare il repository
 
 ```bash
 git clone https://github.com/edge-arc-lab/DC-ARC-Fault.git
 cd DC-ARC-Fault
 ```
 
-## 2️⃣ Creare un ambiente virtuale
+## 2. Creare un ambiente virtuale
 
 ```bash
 # Linux / macOS
@@ -144,7 +144,7 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-## 3️⃣ Installare le dipendenze
+## 3. Installare le dipendenze
 
 ```bash
 pip install -r requirements.txt
@@ -152,7 +152,7 @@ pip install -r requirements.txt
 
 ---
 
-# 📚 Dataset
+# Dataset
 
 Il progetto si basa sulla libreria pubblica di riferimento:
 
@@ -165,7 +165,7 @@ Il dataset grezzo originale (centinaia di GB a 250 kHz con file accessori spuri)
   - `extract`: estrae le variabili fisiche d'interesse (**CurrentData**, **VoltageData**, **power**), sottocampiona da 250 kHz a 10 kHz (fattore di decimazione 25) e salva i file compressi verificandone l'integrità.
 
 Il dataset pulito risultante è disponibile per il download diretto su Kaggle:  
-👉 **[Kaggle – DC Arc Fault Dataset](https://www.kaggle.com/datasets/yassirsuarez/dc-arc-fault)**
+**[Kaggle – DC Arc Fault Dataset](https://www.kaggle.com/datasets/yassirsuarez/dc-arc-fault)**
 
 Scaricare l'archivio da Kaggle ed estrarlo in `dataset/dataset/`. Struttura attesa:
 
@@ -179,13 +179,13 @@ dataset/
 
 ---
 
-# 🔄 Pipeline del Progetto
+# Pipeline del Progetto
 
 ![Pipeline](pipeline.png)
 
 ---
 
-# 1️⃣ Preprocessing & Physical Split
+# 1. Preprocessing & Physical Split
 
 A partire dai segnali campionati a 10 kHz in `dataset/dataset/`, la generazione del dataset e la suddivisione avvengono tramite due script sequenziali:
 
@@ -224,7 +224,7 @@ python split_dataset.py dataset_new/arc_dataset_new.npz dataset_new/arc_dataset_
 
 ---
 
-# 2️⃣ Data Leakage Verification
+# 2. Data Leakage Verification
 
 Lo script `dataset/dataset_leakage_check.py` esegue una suite di audit e validazione indipendente dal modello prima di qualunque training:
 
@@ -240,7 +240,7 @@ python dataset_leakage_check.py dataset_new/arc_dataset_train.npz dataset_new/ar
 
 ---
 
-# 3️⃣ Training & Feature Extraction
+# 3. Training & Feature Extraction
 
 La cartella `script/training/` contiene le pipeline di training per tre architetture distinte.
 
@@ -248,13 +248,13 @@ La cartella `script/training/` contiene le pipeline di training per tre architet
 
 | Modello | Sigla letteratura | Tipologia | Deploy STM32 |
 |---|---|---|---|
-| InceptionTime | InceptionTime | Deep Learning end-to-end (CNN temporale addestrata) | ✅ ONNX → ST Edge AI |
-| MS-RCFE + Ridge | MS-RCFE | Fixed-kernel ROCKET multi-scala + classificatore lineare | ✅ ONNX → ST Edge AI |
-| MultiRocket + varianti | ROCKET / MultiRocket | Feature-based (kernel casuali + ML classico) | ⚠️ Solo sperimentale |
+| InceptionTime | InceptionTime | Deep Learning end-to-end (CNN temporale addestrata) | Yes: ONNX → ST Edge AI |
+| MS-RCFE + Ridge | MS-RCFE | Fixed-kernel ROCKET multi-scala + classificatore lineare | Yes: ONNX → ST Edge AI |
+| MultiRocket + varianti | ROCKET / MultiRocket | Feature-based (kernel casuali + ML classico) | Solo sperimentale |
 
 ---
 
-## 🧠 InceptionTime
+## InceptionTime
 
 `train_inceptiontime.py` gestisce in un unico script:
 
@@ -286,7 +286,7 @@ python train_inceptiontime.py --epochs 50 --n-cal 200 --out risultati_inception
 
 ---
 
-## 🧠 MS-RCFE + Ridge
+## MS-RCFE + Ridge
 
 ### Cos'è MS-RCFE
 
@@ -345,13 +345,13 @@ export_msrcfe/
 
 Per massimizzare l'efficienza computazionale su microcontrollori a bassissimo consumo, la cartella include una suite di analisi per la riduzione dei rami convoluzionali:
 - **`msrcfe_prune.py`:** ablazione sistematica dei 9 rami e ranking delle feature per identificare configurazioni minime.
-- **`msrcfe_comb.py`:** sweep esaustivo sulle 511 combinazioni possibili per determinare la frontiera di Pareto (accuratezza vs moltiplicazioni MAC).
-- **`msrcfe_riduzioni.py`:** esportazione ONNX e header C per le varianti ridotte a 3 rami (`b3`, -82.4% MAC) e 4 rami (`b4`, -72.5% MAC), salvate in `ris_riduzioni/`.
+- **`msrcfe_combinations.py`:** sweep esaustivo sulle 511 combinazioni possibili per determinare la frontiera di Pareto (accuratezza vs moltiplicazioni MAC).
+- **`msrcfe_reductions.py`:** esportazione ONNX e header C per le varianti ridotte a 3 rami (`b3`, -82.4% MAC) e 4 rami (`b4`, -72.5% MAC), salvate in `reduction_results/`.
 - **`msrcfe_seed.py`:** test di robustezza statistica variando il seed dei pesi convoluzionali casuali.
 
 ---
 
-## 🚀 MultiRocket + varianti (analisi comparativa)
+## MultiRocket + varianti (analisi comparativa)
 
 `train_arc_compare.py` addestra e confronta tre pipeline in un unico run:
 
@@ -392,19 +392,19 @@ results/
 
 ---
 
-# 4️⃣ Export ONNX & Quantizzazione
+# 4. Export ONNX & Quantizzazione
 
 Dopo il training, i modelli vengono esportati e quantizzati per il deployment embedded.
 
 | Modello | Export ONNX | Quantizzazione INT8 |
 |---|---|---|
-| InceptionTime | ✅ automatico nel training | ✅ via ST Edge AI |
-| MS-RCFE + Ridge | ✅ `export_msrcfe.py` (solo feature extractor) | ✅ via ST Edge AI |
-| MultiRocket + varianti | ❌ non disponibile | ❌ non applicabile |
+| InceptionTime | Yes: automatico nel training | Yes: via ST Edge AI |
+| MS-RCFE + Ridge | Yes: `export_msrcfe.py` (solo feature extractor) | Yes: via ST Edge AI |
+| MultiRocket + varianti | No: non disponibile | No: non applicabile |
 
 ---
 
-# 5️⃣ Deployment su ST Edge AI
+# 5. Deployment su ST Edge AI
 
 I modelli ONNX vengono validati tramite ST Edge AI Core / Developer Cloud.
 
@@ -419,56 +419,56 @@ Per InceptionTime e MS-RCFE il flusso è:
 
 ---
 
-# 6️⃣ Normalizzazione Causale & Conformità UL 1699B
+# 6. Normalizzazione Causale & Conformità UL 1699B
 
-Per valutare la robustezza dei modelli in scenari operativi realistici senza conoscenza a priori del segnale, la cartella `script/casual_current_I_norm/` implementa:
+Per valutare la robustezza dei modelli in scenari operativi realistici senza conoscenza a priori del segnale, la cartella `script/causal_current_norm/` implementa:
 
-- **Normalizzazione Causale in Tempo Reale (`norm_causale.py`):** sostituisce il valore nominale statico con una stima mobile di $I_{nom}(t)$ calcolata unicamente sui campioni passati (buffer circolare con isteresi e logiche di gating anti-cricchetto), dimostrando che i modelli mantengono elevate prestazioni anche in presenza di variazioni di scala.
-- **Misura del Ritardo di Intervento (`ritardo_rilevazione.py`):** simula l'elaborazione a finestra scorrevole sul test set e misura il ritardo temporale tra l'innesco dell'arco e la decisione positiva confermata su $K$ finestre consecutive ($K=1, 2, 3$), verificando la conformità al vincolo temporale dello standard **UL 1699B** ($t < 2.5\text{ s}$).
-
----
-
-# 7️⃣ Analisi di Robustezza & Ground-Truth da Tensione
-
-Per verificare l'affidabilità delle etichette di ground-truth e analizzare il comportamento dei modelli rispetto alla definizione dell'istante d'innesco dell'arco ($t_1$), la cartella `script/creazione_label_tensione/` include:
-
-- **Sensibilità ai Parametri di Etichettatura (`sensibilita_etichette.py`):** valuta l'impatto delle variazioni dei criteri di soglia e tempo di conferma sulla separazione pre-arco/arco, calcolando intervalli di confidenza bootstrap al 95%.
-- **Validazione con Innesco da Tensione (`valutazione_etichette_tensione.py`):** confronta l'innesco ricavato dalla caduta di tensione del generatore/stringa ($t_{1,V}$) con quello basato sulla corrente, stratificando le performance dei modelli per fasce di intensità di corrente.
-- **Robustezza Parametrica (`robustezza_etichette_tensione.py`):** effettua sweep parametrici su soglie di tensione e finestre di conferma, confrontando i modelli con baseline basate su soglie di livello puro ed evidenziando eventuali finestre ambigue.
-- **Diagnostica Ritardi (`indagine_ritardi.py`):** analizza finestra per finestra i casi limite in cui il rilevamento presenta ritardi più marcati, esaminando congiuntamente l'andamento di corrente, tensione e score dei classificatori.
+- **Normalizzazione Causale in Tempo Reale (`causal_norm.py`):** sostituisce il valore nominale statico con una stima mobile di $I_{nom}(t)$ calcolata unicamente sui campioni passati (buffer circolare con isteresi e logiche di gating anti-cricchetto), dimostrando che i modelli mantengono elevate prestazioni anche in presenza di variazioni di scala.
+- **Misura del Ritardo di Intervento (`detection_delay.py`):** simula l'elaborazione a finestra scorrevole sul test set e misura il ritardo temporale tra l'innesco dell'arco e la decisione positiva confermata su $K$ finestre consecutive ($K=1, 2, 3$), verificando la conformità al vincolo temporale dello standard **UL 1699B** ($t < 2.5\text{ s}$).
 
 ---
 
-# 8️⃣ Analisi dell'Energia Dissipata dall'Arco
+# 7. Analisi di Robustezza & Ground-Truth da Tensione
+
+Per verificare l'affidabilità delle etichette di ground-truth e analizzare il comportamento dei modelli rispetto alla definizione dell'istante d'innesco dell'arco ($t_1$), la cartella `script/voltage_label_creation/` include:
+
+- **Sensibilità ai Parametri di Etichettatura (`label_sensitivity.py`):** valuta l'impatto delle variazioni dei criteri di soglia e tempo di conferma sulla separazione pre-arco/arco, calcolando intervalli di confidenza bootstrap al 95%.
+- **Validazione con Innesco da Tensione (`voltage_label_evaluation.py`):** confronta l'innesco ricavato dalla caduta di tensione del generatore/stringa ($t_{1,V}$) con quello basato sulla corrente, stratificando le performance dei modelli per fasce di intensità di corrente.
+- **Robustezza Parametrica (`voltage_label_robustness.py`):** effettua sweep parametrici su soglie di tensione e finestre di conferma, confrontando i modelli con baseline basate su soglie di livello puro ed evidenziando eventuali finestre ambigue.
+- **Diagnostica Ritardi (`delay_analysis.py`):** analizza finestra per finestra i casi limite in cui il rilevamento presenta ritardi più marcati, esaminando congiuntamente l'andamento di corrente, tensione e score dei classificatori.
+
+---
+
+# 8. Analisi dell'Energia Dissipata dall'Arco
 
 Per valutare il rischio termico e di innesco incendio secondo lo standard UL 1699B, la cartella `script/energy_analysis/` include:
 
-- **Calcolo dell'Energia Dissipata (`energia_arco.py`):** integra la potenza istantanea $E = \int_{t_1}^{t_1+T_{int}} v_{arco}(t) \cdot i(t) \, dt$ su una griglia di tempi di estinzione sintetici e con compensazione della resistenza serie del circuito.
+- **Calcolo dell'Energia Dissipata (`arc_energy.py`):** integra la potenza istantanea $E = \int_{t_1}^{t_1+T_{int}} v_{arco}(t) \cdot i(t) \, dt$ su una griglia di tempi di estinzione sintetici e con compensazione della resistenza serie del circuito.
 - **Accoppiamento con i Modelli di Inferenza:** combina i ritardi di rilevazione reali (a soglia di confidenza $K$) dei modelli InceptionTime e MS-RCFE (FP32 e INT8) con il tempo di apertura meccanico del relè (attuazione), quantificando l'energia effettiva prima dell'estinzione.
 - **Supporto Innesco da Tensione:** consente di avviare l'integrazione energetica dall'istante transitorio rilevato sulla tensione ($t_{1,V}$), catturando l'energia dissipata anche nei casi di innesco asimmetrico o rallentato.
 
 ---
 
-# 9️⃣ Analisi a Carico Variabile & Robustezza Spettrale
+# 9. Analisi a Carico Variabile & Robustezza Spettrale
 
 Nei sistemi fotovoltaici reali, le variazioni di irraggiamento e la commutazione degli inverter introducono fluttuazioni e transitori di corrente che possono confondere i rilevatori basati su semplici soglie di ampiezza. La cartella `script/variable_load_analysis/` valuta sistematicamente la capacità dei modelli di discriminare l'arco in condizioni dinamiche:
 
-- **Impatto delle Variazioni di Carico (`carico_variabile.py`):** valuta l'accuratezza di rilevazione in presenza di gradini di carico e transitori di commutazione, verificando la separabilità tra dinamiche fisiologiche d'impianto e perturbazioni ad alta frequenza indotte dall'arco.
-- **Fusione di Scenari di Carico (`fusione_carichi.py`):** valuta le prestazioni dei classificatori combinando dataset eterogenei e profili di carico differenti, verificando la generalizzazione cross-load.
-- **Rilevamento Indipendente dal Livello DC (`rilevamento_senza_livello.py`):** isola le componenti AC e le feature morfologiche ad alta frequenza (eliminando l'offset DC), dimostrando che i modelli apprendono la firma intrinseca della scarica d'arco anziché fare affidamento sulla caduta di livello medio della corrente.
-- **Analisi e Decomposizione Spettrale (`spettro_medio.py`):** calcola la densità spettrale di potenza media (PSD) per bande temporali durante le varie fasi (pre-arco, transitorio d'innesco, arco stazionario), quantificando l'energia spettrale nelle bande operative.
-- **Framework Multicanale (`analisi_multicanale.py`):** elabora ed estrae feature congiunte da canali multipli (corrente, tensione, potenza istantanea) per massimizzare la tempestività d'intervento e minimizzare i falsi allarmi (FPR).
-- **Visualizzazione Forme d'Onda e Canali (`grafico_canali.py`):** genera tracciati diagnostici ad alta fedeltà delle forme d'onda temporali e dei relativi segnali sincronizzati.
+- **Impatto delle Variazioni di Carico (`variable_load.py`):** valuta l'accuratezza di rilevazione in presenza di gradini di carico e transitori di commutazione, verificando la separabilità tra dinamiche fisiologiche d'impianto e perturbazioni ad alta frequenza indotte dall'arco.
+- **Fusione di Scenari di Carico (`load_fusion.py`):** valuta le prestazioni dei classificatori combinando dataset eterogenei e profili di carico differenti, verificando la generalizzazione cross-load.
+- **Rilevamento Indipendente dal Livello DC (`level_free_detection.py`):** isola le componenti AC e le feature morfologiche ad alta frequenza (eliminando l'offset DC), dimostrando che i modelli apprendono la firma intrinseca della scarica d'arco anziché fare affidamento sulla caduta di livello medio della corrente.
+- **Analisi e Decomposizione Spettrale (`mean_spectrum.py`):** calcola la densità spettrale di potenza media (PSD) per bande temporali durante le varie fasi (pre-arco, transitorio d'innesco, arco stazionario), quantificando l'energia spettrale nelle bande operative.
+- **Framework Multicanale (`multichannel_analysis.py`):** elabora ed estrae feature congiunte da canali multipli (corrente, tensione, potenza istantanea) per massimizzare la tempestività d'intervento e minimizzare i falsi allarmi (FPR).
+- **Visualizzazione Forme d'Onda e Canali (`channel_plot.py`):** genera tracciati diagnostici ad alta fedeltà delle forme d'onda temporali e dei relativi segnali sincronizzati.
 
 ---
 
-# 📊 Risultati Sperimentali 
+# Risultati Sperimentali
 
 I risultati sperimentali di seguito riportati illustrano le prestazioni di classificazione sul test set, i benchmark hardware misurati su microcontrollori target e le verifiche di conformità normativa:
 
 ---
 
-## 1️⃣ Risultati di Classificazione sul Test Set 
+## 1. Risultati di Classificazione sul Test Set
 
 Valutazione su **7.161 finestre di test** (4.520 arco, 2.641 pre-arco) provenienti da **215 esperimenti fisici indipendenti**. Gli intervalli di confidenza al 95% sono ottenuti tramite ricampionamento **bootstrap su 2.000 repliche** a livello di esperimento.
 
@@ -483,7 +483,7 @@ Valutazione su **7.161 finestre di test** (4.520 arco, 2.641 pre-arco) provenien
 
 ---
 
-## 2️⃣ Benchmark Hardware STM32 — Latenza di Inferenza Misurata 
+## 2. Benchmark Hardware STM32 — Latenza di Inferenza Misurata
 
 Latenza di inferenza reale misurata su hardware fisico target per singola finestra da 100 ms (1.000 campioni a 10 kHz):
 - **STM32N6570-DK:** microcontrollore con acceleratore hardware **Neural-ART NPU**.
@@ -514,7 +514,7 @@ Latenza di inferenza reale misurata su hardware fisico target per singola finest
 
 ---
 
-## 3️⃣ Verifica dei Limiti di Sicurezza UL 1699B 
+## 3. Verifica dei Limiti di Sicurezza UL 1699B
 
 Simulazione a finestra scorrevole condotta su tutti i **442 esperimenti di test contenenti arco**. Il ritardo è misurato dall'istante fisico di innesco $t_1$ al completamento della finestra che conferma $K$ predizioni positive consecutive (escludendo il tempo di attuazione meccanica). L'energia è calcolata integrando $E = \int v(t) i(t) dt$.
 
@@ -537,7 +537,7 @@ Simulazione a finestra scorrevole condotta su tutti i **442 esperimenti di test 
 
 ---
 
-## 4️⃣ Sensibilità ai Parametri di Etichettatura
+## 4. Sensibilità ai Parametri di Etichettatura
 
 Valutazione della robustezza dei modelli addestrati (senza riaddestramento) rispetto a variazioni nei criteri di definizione del ground-truth (soglia di ampiezza corrente $I_{nom}$ e finestra di conferma temporale):
 
@@ -555,7 +555,7 @@ Valutazione della robustezza dei modelli addestrati (senza riaddestramento) risp
 
 ---
 
-## 5️⃣ Ablazione e Pruning dei Rami di MS-RCFE 
+## 5. Ablazione e Pruning dei Rami di MS-RCFE
 
 Studio di riduzione dei 9 rami convoluzionali (valutato su 10 estrattori casuali con seed indipendenti, 9.000 finestre di training) per identificare configurazioni Pareto-ottimali a bassissima latenza:
 
@@ -572,7 +572,7 @@ Studio di riduzione dei 9 rami convoluzionali (valutato su 10 estrattori casuali
 
 ---
 
-## 6️⃣ Confronto Baseline MultiRocket (Solo Offline)
+## 6. Confronto Baseline MultiRocket (Solo Offline)
 
 | Pipeline | Accuracy | Balanced Acc | F1 | ROC-AUC |
 |---|---|---|---|---|
@@ -584,7 +584,7 @@ Studio di riduzione dei 9 rami convoluzionali (valutato su 10 estrattori casuali
 
 ---
 
-# 🏁 Conclusioni e Raccomandazioni
+# Conclusioni e Raccomandazioni
 
 Il progetto ha valutato due famiglie principali di modelli per la rilevazione di DC arc fault, con requisiti congiunti di alta accuratezza e compatibilità embedded real-time:
 
@@ -596,13 +596,13 @@ Entrambe le soluzioni garantiscono piena conformità ai requisiti di sicurezza d
 
 ---
 
-# 👥 Autori & Affiliazione
+# Autori & Affiliazione
 
 - **Lorenzo Meloccaro** — Università Politecnica delle Marche
 - **Yassir Flavio Suarez Sanchez** — Università Politecnica delle Marche
 ---
 
-# 📄 Licenza
+# Licenza
 
 Il dataset originale appartiene ai rispettivi autori del progetto pubblicato su IEEE DataPort.
 Il codice del repository è distribuito secondo la licenza specificata nel progetto.

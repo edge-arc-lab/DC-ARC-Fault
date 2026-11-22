@@ -233,7 +233,7 @@ def tab_energy(res, out):
 
 
 def sens_df(res):
-    raw, src = read_zip_or_dir(res, "ris_sensibilita.zip", "sensibilita_etichette.csv")
+    raw, src = read_zip_or_dir(res, "ris_sensibilita.zip", "label_sensitivity.csv")
     if raw is None:
         return None, None
     return pd.read_csv(io.BytesIO(raw)), src
@@ -242,7 +242,7 @@ def sens_df(res):
 def tab_classification_sens(res, out):
     d, src = sens_df(res)
     if d is None:
-        print("skip tab_classification / tab_sensitivity: sensibilita_etichette.csv not found")
+        print("skip tab_classification / tab_sensitivity: label_sensitivity.csv not found")
         return
     base = d[d.variante == "base"]
     rows = []
@@ -327,7 +327,7 @@ def selftest():
             for m in LONG:
                 csv += f"{v},0.95,300,0.1,7161,4520,2641,{m},99.0,98.0,99.5,0.5,0.1,1.0,99,98,99.5,10,5\n"
         with zipfile.ZipFile(res / "ris_sensibilita.zip", "w") as z:
-            z.writestr("ris_sensibilita/sensibilita_etichette.csv", csv)
+            z.writestr("ris_sensibilita/label_sensitivity.csv", csv)
         out = Path(td) / "out"
         run(res, out, None)
         need = ["figures/fig_delay_ecdf.pdf", "figures/fig_energy.pdf", "tables/tab_delay.tex", "tables/tab_energy.tex",

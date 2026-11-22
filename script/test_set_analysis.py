@@ -44,10 +44,10 @@ TEST_NPZ = "dataset/dataset_new/arc_dataset_test.npz"
 TEST_META = "dataset/dataset_new/arc_dataset_meta_test.csv"
 MODELLI = {
     "inc_fp32": "script/training/inception_time/results/inceptiontime.onnx",
-    "inc_int8": "script/modelli_quantizzati/Inception/"
+    "inc_int8": "script/quantized_models/Inception/"
                 "inceptiontime_PerChannel_quant_calibration_data_npz_1.onnx",
     "ms_fp32": "script/training/msrcfe/export_msrcfe/msrcfe.onnx",
-    "ms_int8": "script/modelli_quantizzati/msrcfe/"
+    "ms_int8": "script/quantized_models/msrcfe/"
                "msrcfe_PerChannel_quant_calibration_msrcfe_npz_1.onnx",
 }
 RIDGE_COEF = "script/training/msrcfe/results/ridge_coef.npy"

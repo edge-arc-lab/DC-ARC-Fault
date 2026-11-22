@@ -18,11 +18,11 @@ import numpy as np
 
 QUI = Path(__file__).resolve().parent
 REPO = QUI.parents[1] if (QUI.parents[1] / "dataset").is_dir() else QUI.parent
-for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "casual_current_I_norm"), str(REPO)]:
+for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "causal_current_norm"), str(REPO)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import norm_causale as nc
+import causal_norm as nc
 import test_set_analysis as a
 
 CLASSI = [("calo forte (B/A < 0.70)", 0.0, 0.70), ("calo lieve (0.70-0.95)", 0.70, 0.95),
@@ -109,10 +109,10 @@ def stampa(righe, out):
         print(f"  {r['normalizzazione']:<16}{r['classificatore']:<26}{r['FPR_B_pre']:>29.1f}%{r['DR_arco_attivo']:>15.1f}%{('-' if r['FPR_regime_A'] != r['FPR_regime_A'] else format(r['FPR_regime_A'], '.1f') + '%'):>14}")
     if out:
         Path(out).mkdir(parents=True, exist_ok=True)
-        with open(Path(out) / "fusione_carichi.csv", "w", newline="", encoding="utf-8") as f:
+        with open(Path(out) / "load_fusion.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=list(righe[0].keys()))
             w.writeheader(); w.writerows(righe)
-        print(f"\nSalvato {Path(out) / 'fusione_carichi.csv'}")
+        print(f"\nSalvato {Path(out) / 'load_fusion.csv'}")
 
 
 def sintetico(rng, p, A, durata=3.0, t_arco=0.5, livello=0.88):

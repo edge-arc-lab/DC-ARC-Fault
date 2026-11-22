@@ -155,7 +155,7 @@ def main():
     ap.add_argument("--ref-onnx", default=None, help="msrcfe.onnx originale per il confronto numerico del grafo completo")
     ap.add_argument("--varianti", nargs="*", default=None, help="nome=k3d1,k5d2 ... (default b3, b4, full)")
     ap.add_argument("--int8-locale", action="store_true")
-    ap.add_argument("--out", default="ris_riduzioni")
+    ap.add_argument("--out", default="reduction_results")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:

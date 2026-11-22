@@ -21,7 +21,7 @@ except ImportError:                      # tqdm e' facoltativo
 
 # --- PERCORSI DI DEFAULT (relativi al repository) ---
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]  # script/modelli_quantizzati/Inception -> radice del repo
+ROOT = HERE.parents[2]  # script/quantized_models/Inception -> radice del repo
 
 PATH_ORIGINALE = ROOT / "script" / "training" / "inception_time" / "results" / "inceptiontime.onnx"
 PATH_QUANTIZZATO = HERE / "inceptiontime_PerChannel_quant_calibration_data_npz_1.onnx"  # da ST Edge AI

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ritardo_rilevazione.py
+detection_delay.py
 Calcolo del ritardo di rilevamento dell'arco e verifica conformita' UL 1699B.
 Simula la decisione a finestra scorrevole sul test set con criterio a K conferme.
 """
@@ -15,7 +15,7 @@ import numpy as np
 
 QUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(QUI))
-import norm_causale as nc  # noqa: E402
+import causal_norm as nc  # noqa: E402
 
 
 def prima_rilevazione(dec, ends, t1_idx, K):

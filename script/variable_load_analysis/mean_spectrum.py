@@ -16,11 +16,11 @@ import numpy as np
 
 QUI = Path(__file__).resolve().parent
 REPO = QUI.parents[1] if (QUI.parents[1] / "dataset").is_dir() else QUI.parent
-for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "casual_current_I_norm"), str(REPO)]:
+for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "causal_current_norm"), str(REPO)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import analisi_multicanale as tm
+import multichannel_analysis as tm
 
 nc = tm.nc
 FASCE = [(10, 100), (100, 500), (500, 1000), (1000, 2000), (2000, 5000)]

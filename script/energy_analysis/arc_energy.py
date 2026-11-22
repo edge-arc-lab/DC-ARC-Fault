@@ -21,11 +21,11 @@ import numpy as np
 
 QUI = Path(__file__).resolve().parent
 REPO = QUI.parents[1] if (QUI.parents[1] / "dataset").is_dir() else QUI.parent
-for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "casual_current_I_norm"), str(REPO)]:
+for p in [str(QUI), str(REPO / "script"), str(REPO / "script" / "causal_current_norm"), str(REPO)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import norm_causale as nc
+import causal_norm as nc
 
 
 def energia(v, i, t1_idx, n_campioni, fs, r_serie=0.0):
@@ -61,7 +61,7 @@ def main():
     ap.add_argument("--ritardi", type=float, nargs="+", default=[20, 50, 100, 150, 200, 300],
                     help="tempo totale innesco-interruzione in ms")
     ap.add_argument("--r-serie", type=float, default=0.0, help="resistenza in serie [ohm] da sottrarre (default 0)")
-    ap.add_argument("--rilevazione-csv", default=None, help="ritardo_per_file.csv generato da ritardo_rilevazione.py")
+    ap.add_argument("--rilevazione-csv", default=None, help="ritardo_per_file.csv generato da detection_delay.py")
     ap.add_argument("--attuazione", type=float, nargs="+", default=[0, 10, 50], help="tempo di attuazione [ms]")
     ap.add_argument("--downsample-factor", type=int, default=1)
     ap.add_argument("--t1-csv", default=None, help="CSV con etichette da tensione: integra da t1_V invece che da t1")

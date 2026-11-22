@@ -96,16 +96,16 @@ def export_msrcfe_onnx(msrcfe, n_tp, out_dir):
     # ── VERIFICA STRUTTURA GRAFO ──
     model_onnx = onnx.load(path)
     onnx.checker.check_model(model_onnx)
-    log.info(f"✔ ONNX checker: OK")
+    log.info(f"ONNX checker: OK")
 
     # Controlla che non ci siano nodi Squeeze problematici
     squeeze_nodes = [n for n in model_onnx.graph.node if n.op_type == "Squeeze"]
     if squeeze_nodes:
-        log.warning(f"⚠ Trovati {len(squeeze_nodes)} nodi Squeeze — potrebbero causare problemi")
+        log.warning(f"Trovati {len(squeeze_nodes)} nodi Squeeze — potrebbero causare problemi")
         for node in squeeze_nodes:
             log.warning(f"  Squeeze: inputs={list(node.input)}")
     else:
-        log.info("✔ Nessun nodo Squeeze — grafo pulito")
+        log.info("Nessun nodo Squeeze — grafo pulito")
 
     # ── VERIFICA NUMERICA PyTorch vs ONNX ──
     with torch.no_grad():
@@ -117,20 +117,20 @@ def export_msrcfe_onnx(msrcfe, n_tp, out_dir):
     max_diff = np.abs(pt_out - ort_out).max()
     rel_diff = max_diff / (np.abs(pt_out).max() + 1e-8)
 
-    log.info(f"✔ Verifica numerica:")
+    log.info(f"Verifica numerica:")
     log.info(f"  Max diff assoluta:  {max_diff:.2e}")
     log.info(f"  Max diff relativa:  {rel_diff:.2e}")
 
     if max_diff > 1e-4:
-        log.warning("⚠ Differenza numerica alta — controlla l'architettura")
+        log.warning("Differenza numerica alta — controlla l'architettura")
     else:
-        log.info("✔ Output PyTorch ≈ Output ONNX — export corretto")
+        log.info("Output PyTorch ≈ Output ONNX — export corretto")
 
     # ── INFO GRAFO ──
     log.info(f"\n── Info ONNX ──")
     log.info(f"  Input:   {sess.get_inputs()[0].name}  {sess.get_inputs()[0].shape}")
     log.info(f"  Output:  {sess.get_outputs()[0].name} {sess.get_outputs()[0].shape}")
-    log.info(f"✔ MSRCFE ONNX salvato: {path}")
+    log.info(f"MSRCFE ONNX salvato: {path}")
 
     return sess.get_outputs()[0].shape[-1]  # restituisce n_features
 
@@ -161,7 +161,7 @@ def export_ridge_header(clf, out_dir):
 #endif /* RIDGE_WEIGHTS_H */
 """)
 
-    log.info(f"✔ Ridge header: {path}  ({len(coef)} features)")
+    log.info(f"Ridge header: {path}  ({len(coef)} features)")
 
 
 # ─────────────────────────────────────────────
@@ -182,7 +182,7 @@ def export_calibration_dataset(dataset_path, n_tp, out_dir, n_per_class=200):
     path = os.path.join(out_dir, "calibration_msrcfe.npz")
     np.savez(path, input=X_4d)
 
-    log.info(f"✔ Calibration dataset: {path}")
+    log.info(f"Calibration dataset: {path}")
     log.info(f"  Shape: {X_4d.shape}  (label=0: {len(idx0)}, label=1: {len(idx1)})")
 
 
@@ -229,11 +229,11 @@ def main():
     # ── SANITY CHECK: n_features del Ridge deve matchare MSRCFE ──
     ridge_n = clf.coef_.shape[-1]
     if n_features != ridge_n:
-        log.error(f"✘ MISMATCH: MSRCFE produce {n_features} features, Ridge si aspetta {ridge_n}!")
+        log.error(f"MISMATCH: MSRCFE produce {n_features} features, Ridge si aspetta {ridge_n}!")
     else:
-        log.info(f"\n✔ Feature match: MSRCFE={n_features} == Ridge={ridge_n}")
+        log.info(f"\nFeature match: MSRCFE={n_features} == Ridge={ridge_n}")
 
-    log.info("\n✔ EXPORT COMPLETATO")
+    log.info("\nEXPORT COMPLETATO")
     log.info(f"  Output: {args.out}/")
     log.info(f"    msrcfe.onnx")
     log.info(f"    ridge_weights.h")

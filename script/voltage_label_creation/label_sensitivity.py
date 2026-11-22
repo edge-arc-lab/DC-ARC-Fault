@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-sensibilita_etichette.py
+label_sensitivity.py
 Analisi di sensibilita' delle metriche di classificazione ai parametri
 di etichettatura (THRESH_FRAC, CONFIRM_MS, MIN_NOM_A) con intervalli bootstrap al 95%.
 """
@@ -310,7 +310,7 @@ def main():
                                n_arco=int((y == 1).sum()), n_pre=int((y == 0).sum()), file_senza_arco=senza,
                                shift_t1_mediano_ms=(float(np.median(sh)) if sh else None),
                                modelli={ETICHETTE[k]: r[k] for k in MODELLI})
-    with open(out / "sensibilita_etichette.csv", "w", newline="", encoding="utf-8") as f:
+    with open(out / "label_sensitivity.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["variante", "soglia", "conferma_ms", "min_nom_A", "n_finestre", "n_arco", "n_pre", "modello",
                     "DR", "DR_lo", "DR_hi", "FPR", "FPR_lo", "FPR_hi", "ACC", "ACC_lo", "ACC_hi", "FN", "FP"])

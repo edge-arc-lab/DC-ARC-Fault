@@ -282,7 +282,7 @@ def export_onnx(learn, n_timepoints: int, onnx_path: str,
             inp_name = sess.get_inputs()[0].name
             sample   = np.zeros((1, 1, n_timepoints), dtype=np.float32)
             out      = sess.run(None, {inp_name: sample})[0]
-            log.info("  Verifica onnxruntime: output shape %s  ✓", out.shape)
+            log.info("  Verifica onnxruntime: output shape %s", out.shape)
         except ImportError:
             log.warning("  onnxruntime non installato — skip verifica")
         except Exception as e:

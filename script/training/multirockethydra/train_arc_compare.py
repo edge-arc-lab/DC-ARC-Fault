@@ -890,7 +890,7 @@ def main():
         row  = f"{label:<25}"
         for m in results:
             v    = vals[m]
-            star = " ★" if v == best else "  "
+            star = " *" if v == best else "  "
             row += f"{v:.4f}{star}".rjust(col_w)
         print(row)
 

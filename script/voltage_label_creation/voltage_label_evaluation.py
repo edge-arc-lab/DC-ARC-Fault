@@ -21,7 +21,7 @@ for p in [str(QUI), str(REPO / "script"), str(REPO)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import sensibilita_etichette as s
+import label_sensitivity as s
 import test_set_analysis as a
 
 

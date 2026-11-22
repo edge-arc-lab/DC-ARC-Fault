@@ -165,10 +165,10 @@ def main():
     np.save(os.path.join(args.out, "ridge_intercept.npy"), clf.intercept_)
 
     log.info("\nSaved:")
-    log.info("  ✔ msrcfe_bundle.pkl")
-    log.info("  ✔ msrcfe_extractor.pt")
-    log.info("  ✔ ridge_coef.npy")
-    log.info("  ✔ ridge_intercept.npy")
+    log.info("  msrcfe_bundle.pkl")
+    log.info("  msrcfe_extractor.pt")
+    log.info("  ridge_coef.npy")
+    log.info("  ridge_intercept.npy")
 
 
 if __name__ == "__main__":

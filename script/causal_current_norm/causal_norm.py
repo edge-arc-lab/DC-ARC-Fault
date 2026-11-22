@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-norm_causale.py
+causal_norm.py
 Valutazione della normalizzazione causale della corrente in tempo reale.
 Sostituisce la stima offline di I_nom con una stima mobile causale
 (buffer circolare e logiche di gating) sui modelli pre-addestrati.
@@ -163,7 +163,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repo", default=None)
     ap.add_argument("--mat-root", default=None)
-    ap.add_argument("--out", default="risultati_norm_causale")
+    ap.add_argument("--out", default="causal_norm_results")
     ap.add_argument("--W", type=float, nargs="+", default=[2.0], help="ampiezze in secondi")
     ap.add_argument("--gate", choices=["none", "level", "hyst", "model"], default="level")
     ap.add_argument("--gate-frac", type=float, default=None,
