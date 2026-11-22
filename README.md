@@ -10,7 +10,7 @@ DC series arc faults are a critical hazard for photovoltaic installations and on
 - **Detection Rate (DR):** between **98.5%** and **99.7%** across all variants (FP32 and INT8).
 - **False-Positive Rate (FPR):** between **0.11%** and **0.61%**.
 - **Inference latency measured on hardware:**
-  - **InceptionTime INT8:** **19.73 ms** on the Neural-ART NPU (**~315×** speed-up over 6218 ms on the CPU).
+  - **InceptionTime INT8:** **19.73 ms** on the Neural-ART NPU.
   - **MS-RCFE INT8:** **69.77 ms** on a bare Cortex-M7 (RAM: **≈ 141 KiB**, Flash: **30.8 KB**); **17.78 ms** for the 3-branch pruned variant (`b3`).
 - **Detection delay and energy (UL 1699B):**
   - Median detection delay: **117 – 143 ms** (worst case $1.94\text{ s} < 2.5\text{ s}$).
@@ -506,7 +506,7 @@ Inference latency measured on the physical target hardware for a single 100 ms w
 | **Total Flash (INT8)** | 399 KB (INT8 weights) | **30.81 KB** (23.56 KB FP32) |
 
 > **Key deployment considerations:**
-> 1. **InceptionTime** requires the NPU: on a Cortex-M55 without NPU it takes 6.22 s, whereas the Neural-ART accelerator reduces latency to **19.73 ms** ($\sim 315\times$ speed-up), compatible with the 50 ms overlap step at the cost of 2.15 MB of internal RAM.
+> 1. **InceptionTime** requires the NPU: on a Cortex-M55 without NPU it takes 6.22 s, whereas the Neural-ART accelerator reduces latency to **19.73 ms**, compatible with the 50 ms overlap step at the cost of 2.15 MB of internal RAM.
 > 2. **MS-RCFE + Ridge** requires only **141 KiB of RAM** and **30.8 KB of Flash**. Running on the Cortex-M7 without any hardware accelerator, it completes inference in **69.77 ms** in INT8 (84.75 ms in FP32).
 
 ---
@@ -587,7 +587,7 @@ The project evaluated two main families of models for DC arc fault detection, wi
 
 **MS-RCFE + Ridge** is the preferred solution for low-cost microcontrollers without an accelerator (for example, STM32H7 with Cortex-M7). It combines an accuracy of **99.43%** even after INT8 quantization, a minimal hardware footprint (**30.8 KB Flash, 141 KiB RAM**) and an inference time of **69.77 ms** in INT8 (84.75 ms in FP32). With the pruned variants of 3 branches (`b3`) and 4 branches (`b4`), latency is further reduced to **17.78 ms** and **26.46 ms**, enabling continuous inference with a 50 ms overlap step.
 
-**InceptionTime** is the high-performance choice when a dedicated hardware accelerator is available (**Neural-ART NPU on the STM32N6570-DK**). The NPU brings latency to **19.73 ms** (a **~315×** speed-up over the 6218 ms of the Cortex-M55 CPU alone) with an accuracy of **98.97%**, requiring 2.15 MB of internal RAM.
+**InceptionTime** is the high-performance choice when a dedicated hardware accelerator is available (**Neural-ART NPU on the STM32N6570-DK**). The NPU brings latency to **19.73 ms** with an accuracy of **98.97%**, requiring 2.15 MB of internal RAM.
 
 Both solutions meet the **UL 1699B** requirements, with median delays of 117–143 ms ($< 2.5\text{ s}$) and energy dissipated before disconnection below 267.7 J ($< 750\text{ J}$).
 
