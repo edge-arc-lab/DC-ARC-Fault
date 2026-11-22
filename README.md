@@ -487,7 +487,7 @@ Inference latency measured on the physical target hardware for a single 100 ms w
 - **STM32H7S78-DK:** general-purpose microcontroller based on an **ARM Cortex-M7** (600 MHz) without accelerator.
 
 | Board / Platform | Acceleration | Model | FP32 [ms] | INT8 [ms] | INT8 throughput |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 | **STM32N6570-DK** | Neural-ART NPU | InceptionTime | 6218.00 ms | **19.73 ms** | **50.68 inf/s** |
 | **STM32H7S78-DK** | Cortex-M7 (CPU) | InceptionTime | 6997.67 ms | 2370.64 ms | 0.42 inf/s |
 | **STM32H7S78-DK** | Cortex-M7 (CPU) | MS-RCFE + Ridge | 84.75 ms | **69.77 ms** | **14.33 inf/s** |
@@ -597,7 +597,6 @@ Both solutions meet the **UL 1699B** requirements, with median delays of 117–1
 
 - **Lorenzo Meloccaro**, Università Politecnica delle Marche
 - **Yassir Flavio Suarez Sanchez**, Università Politecnica delle Marche
-  
 
 ---
 
